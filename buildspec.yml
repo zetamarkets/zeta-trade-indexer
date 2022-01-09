@@ -1,0 +1,42 @@
+version: 0.2
+
+env:
+  parameter-store:
+    NETWORK_TYPE: "devnet"
+    PROGRAM_ID: "program_id"
+    SERVER_BASE_URL: "server_base_url"
+    RPC_URL: "devnet_rpc_url"
+    FETCH_INTERVAL: "fetch_interval"
+    DS_NAME_EVENT_QUEUE: "devnet_ds_name_event_queue"
+    DS_NAME_PRICES: "devnet_ds_name_prices"
+    DS_NAME_SURFACES: "devnet_ds_name_surfaces"
+  secrets-manager:
+    ACCESS_KEY_ID: "access_key:id"
+    SECRET_ACCESS_KEY: "access_key:key"
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws --version
+      - $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
+      - REPOSITORY_URI=840153641671.dkr.ecr.ap-southeast-1.amazonaws.com/zeta-indexer
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=build-$(echo $CODEBUILD_BUILD_ID | awk -F":" '{print $2}')
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t $REPOSITORY_URI:latest .
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker images...
+      - docker push $REPOSITORY_URI:latest
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - echo Writing image definitions file...
+      - printf '[{"name":"zeta-indexer-instance","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      - cat imagedefinitions.json
+artifacts:
+  files: imagedefinitions.json
