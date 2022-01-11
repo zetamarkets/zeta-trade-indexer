@@ -2,7 +2,6 @@ import AWS from "aws-sdk";
 import { AWSOptions } from "./aws-config";
 import { Trade } from "./types";
 
-// let dynamoDB = new AWS.DynamoDB.DocumentClient(AWSOptions);
 let dynamodb = new AWS.DynamoDB(AWSOptions);
 let docClient = new AWS.DynamoDB.DocumentClient(AWSOptions);
 

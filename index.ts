@@ -8,12 +8,17 @@ export const connection = new Connection(
   utils.defaultCommitment()
 );
 
-console.log(process.env.PROGRAM_ID);
+const network =
+  process.env!.NETWORK === "mainnet"
+    ? Network.MAINNET
+    : process.env!.NETWORK === "devnet"
+    ? Network.DEVNET
+    : Network.LOCALNET;
 
 const main = async () => {
   await Exchange.load(
     new PublicKey(process.env.PROGRAM_ID),
-    Network.DEVNET,
+    network,
     connection,
     utils.defaultCommitment(),
     undefined,

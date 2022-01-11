@@ -11,6 +11,7 @@ import { decodeRecentEvents } from "./utils";
 import { connection } from ".";
 import { PublicKey } from "@solana/web3.js";
 import { putDynamo } from "./utils/dynamodb";
+import { FETCH_INTERVAL } from "./utils/constants";
 
 let fetchingMarkets: boolean[];
 fetchingMarkets = new Array(constants.ACTIVE_MARKETS).fill(false);
@@ -151,5 +152,5 @@ const collectEventQueue = (
     } catch (e) {
       console.warn("Unable to fetch event queue: ", e);
     }
-  }, parseInt(process.env.FETCH_INTERVAL));
+  }, FETCH_INTERVAL);
 };
