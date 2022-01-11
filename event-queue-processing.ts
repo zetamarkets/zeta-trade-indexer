@@ -144,8 +144,8 @@ const collectEventQueue = (
         );
         lastSeqNum[marketIndex] = currentSeqNum;
         if (trades.length > 0) {
-          putDynamo(trades);
-          putFirehoseBatch(trades, process.env.DS_NAME_EVENT_QUEUE);
+          putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
+          putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
         }
         fetchingMarkets[marketIndex] = false;
       }

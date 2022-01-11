@@ -4,11 +4,6 @@ env:
   variables:
     ECR_REPO_NAME: "zeta-trade-indexer"
   parameter-store:
-    # PROGRAM_ID: "/$NETWORK/program_id"
-    # SERVER_BASE_URL: "/$NETWORK/server_base_url"
-    # RPC_URL: "/$NETWORK/rpc_url"
-    # DS_NAME_TRADES: "/$NETWORK/ds_name_trades"
-    # FETCH_INTERVAL: "event_queue_fetch_interval"
     REGION: "region"
 
 phases:

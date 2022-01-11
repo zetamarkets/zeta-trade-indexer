@@ -11,7 +11,7 @@ dynamodb.listTables({}, function (err, data) {
   else console.log(data); // successful response
 });
 
-export const putDynamo = (data: Trade[]) => {
+export const putDynamo = (data: Trade[], dynamoTableName: string) => {
   if (!data.length) return;
   const dynamoData = data.map((d) => {
     return {
@@ -42,17 +42,16 @@ export const putDynamo = (data: Trade[]) => {
       let startIndex = 0 + indexShift;
       let endIndex = 25 + indexShift;
       const slicedBatch = dynamoData.slice(startIndex, endIndex);
-      putDynamoBatch(slicedBatch);
+      putDynamoBatch(slicedBatch, dynamoTableName);
     }
   } else {
-    putDynamoBatch(dynamoData);
+    putDynamoBatch(dynamoData, dynamoTableName);
   }
 };
 
-const putDynamoBatch = (dynamoData) => {
-  let tableName = process.env.DYNAMO_NAME_EVENT_QUEUE;
+const putDynamoBatch = (dynamoData, dynamoTableName: string) => {
   let requestItems = {};
-  requestItems[tableName] = dynamoData;
+  requestItems[dynamoTableName] = dynamoData;
   const params = {
     RequestItems: requestItems,
   };
