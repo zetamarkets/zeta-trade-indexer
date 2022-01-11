@@ -9,15 +9,15 @@ env:
     # RPC_URL: "/$NETWORK/rpc_url"
     # DS_NAME_TRADES: "/$NETWORK/ds_name_trades"
     # FETCH_INTERVAL: "event_queue_fetch_interval"
-    AWS_REGION: "aws_region"
+    REGION: "region"
 
 phases:
   pre_build:
     commands:
       - echo Logging in to Amazon ECR...
       - aws --version
-      - $(aws ecr get-login --region $AWS_REGION --no-include-email)
-      - REPOSITORY_URI=840153641671.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME
+      - $(aws ecr get-login --region $REGION --no-include-email)
+      - REPOSITORY_URI=840153641671.dkr.ecr.$REGION.amazonaws.com/$ECR_REPO_NAME
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=build-$(echo $CODEBUILD_BUILD_ID | awk -F":" '{print $2}')
   build:
