@@ -6,7 +6,6 @@
     "module": "commonjs",
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "composite": true
+    "skipLibCheck": true
   }
 }

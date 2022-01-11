@@ -4,15 +4,15 @@ env:
   variables:
     ECR_REPO_NAME: "zeta-trade-indexer"
   parameter-store:
-    PROGRAM_ID: "/$NETWORK/program_id"
-    SERVER_BASE_URL: "/$NETWORK/server_base_url"
-    RPC_URL: "/$NETWORK/rpc_url"
-    DS_NAME_TRADES: "/$NETWORK/ds_name_trades"
-    FETCH_INTERVAL: "event_queue_fetch_interval"
+    # PROGRAM_ID: "/$NETWORK/program_id"
+    # SERVER_BASE_URL: "/$NETWORK/server_base_url"
+    # RPC_URL: "/$NETWORK/rpc_url"
+    # DS_NAME_TRADES: "/$NETWORK/ds_name_trades"
+    # FETCH_INTERVAL: "event_queue_fetch_interval"
     AWS_REGION: "aws_region"
   secrets-manager:
-    ACCESS_KEY_ID: "access_key:id"
-    SECRET_ACCESS_KEY: "access_key:key"
+    # ACCESS_KEY_ID: "access_key:id"
+    # SECRET_ACCESS_KEY: "access_key:key"
 
 phases:
   pre_build:

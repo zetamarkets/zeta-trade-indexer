@@ -8,6 +8,8 @@ export const connection = new Connection(
   utils.defaultCommitment()
 );
 
+console.log(process.env.PROGRAM_ID);
+
 const main = async () => {
   await Exchange.load(
     new PublicKey(process.env.PROGRAM_ID),
