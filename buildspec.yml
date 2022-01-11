@@ -10,9 +10,6 @@ env:
     # DS_NAME_TRADES: "/$NETWORK/ds_name_trades"
     # FETCH_INTERVAL: "event_queue_fetch_interval"
     AWS_REGION: "aws_region"
-  secrets-manager:
-    # ACCESS_KEY_ID: "access_key:id"
-    # SECRET_ACCESS_KEY: "access_key:key"
 
 phases:
   pre_build:
