@@ -1,8 +1,6 @@
 version: 0.2
 
 env:
-  variables:
-    ECR_REPO_NAME: "zeta-trade-indexer"
   parameter-store:
     REGION: "region"
 
