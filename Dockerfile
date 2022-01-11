@@ -15,7 +15,5 @@ RUN yarn install
 # Bundle app source
 COPY . .
 
-# RUN yarn run build
-
 EXPOSE 8080
-CMD [ "yarn", "run", "start" ]
+# CMD [ "yarn", "run", "start" ]

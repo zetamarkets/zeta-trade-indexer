@@ -6,7 +6,7 @@ import {
   u64,
   zeros,
 } from "@project-serum/serum/lib/layout";
-import { EventQueueHeader } from "../utils/types";
+import { EventQueueHeader } from "./types";
 
 const EVENT_QUEUE_HEADER = struct<EventQueueHeader>([
   blob(5),
@@ -18,13 +18,13 @@ const EVENT_QUEUE_HEADER = struct<EventQueueHeader>([
   u32("seqNum"),
   zeros(4),
 ]);
-  
+
 const EVENT_FLAGS = bits(u8(), false, "eventFlags");
 EVENT_FLAGS.addBoolean("fill");
 EVENT_FLAGS.addBoolean("out");
 EVENT_FLAGS.addBoolean("bid");
 EVENT_FLAGS.addBoolean("maker");
-  
+
 const EVENT = struct([
   EVENT_FLAGS,
   u8("openOrdersSlot"),
@@ -37,7 +37,7 @@ const EVENT = struct([
   publicKeyLayout("openOrders"),
   u64("clientOrderId"),
 ]);
-    
+
 export function decodeRecentEvents(buffer: Buffer, lastSeenSeqNum?: number) {
   const header = EVENT_QUEUE_HEADER.decode(buffer);
   const events: any[] = [];

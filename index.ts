@@ -1,4 +1,4 @@
-require("dotenv").config();
+// require("dotenv").config();
 import { Exchange, Network, utils } from "@zetamarkets/sdk";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { collectMarketData } from "./event-queue-processing";
