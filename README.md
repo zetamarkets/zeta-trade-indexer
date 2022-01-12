@@ -2,6 +2,12 @@
 
 Indexes all trades from the Zeta event queue.
 
+## Install dependencies
+
+```sh
+yarn install
+```
+
 ## Testing locally
 
 Build the docker image locally
