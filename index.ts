@@ -3,10 +3,7 @@ import { Exchange, Network, utils } from "@zetamarkets/sdk";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { collectMarketData } from "./event-queue-processing";
 
-export const connection = new Connection(
-  process.env.RPC_URL,
-  utils.defaultCommitment()
-);
+export const connection = new Connection(process.env.RPC_URL, "finalized");
 
 const network =
   process.env!.NETWORK === "mainnet"
