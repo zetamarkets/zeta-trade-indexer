@@ -1,4 +1,4 @@
-# zeta-event-queue-indexer
+# zeta-trade-indexer
 
 Indexes all trades from the Zeta event queue.
 
