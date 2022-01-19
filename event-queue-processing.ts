@@ -87,33 +87,37 @@ const collectEventQueue = (
         // console.log(`Trade occurred: Market ${marketIndex} ${strike} ${kind} ${utils.convertNativeIntegerToDecimal(price)} ${utils.convertNativeLotSizeToDecimal(size)}`)
         // Could be cancel or insert here
       } else {
-        if (events[i].eventFlags.bid) {
-          // Bid cancel?
-          if (
-            events[i].nativeQuantityReleased.toNumber() > 0 &&
-            events[i].nativeQuantityPaid.toNumber() === 0
-          ) {
-            price = events[i].orderId.iushrn(64).toNumber();
-            size = events[i].nativeQuantityReleased.toNumber() / price;
-            // console.log(`Non fill bid case: ${convertNativeIntegerToDecimal(price)} ${utils.convertNativeLotSizeToDecimal(size)}`);
-          } else {
-            // Overlap between cancel and insert?
-            continue;
-          }
-        } else {
-          // Ask cancel?
-          if (
-            events[i].nativeQuantityReleased.toNumber() > 0 &&
-            events[i].nativeQuantityPaid.toNumber() === 0
-          ) {
-            price = events[i].orderId.iushrn(64).toNumber();
-            size = events[i].nativeQuantityReleased.toNumber();
-            // console.log(`Non fill ask case: ${convertNativeIntegerToDecimal(price)} ${utils.convertNativeLotSizeToDecimal(size)}`);
-          } else {
-            // Overlap between cancel and insert?
-            continue;
-          }
-        }
+        // Only recording fills, so anything else is not recorded
+        continue;
+
+        // // Excess logic to partially deal with cancels + inserts
+        // if (events[i].eventFlags.bid) {
+        //   // Bid cancel?
+        //   if (
+        //     events[i].nativeQuantityReleased.toNumber() > 0 &&
+        //     events[i].nativeQuantityPaid.toNumber() === 0
+        //   ) {
+        //     price = events[i].orderId.iushrn(64).toNumber();
+        //     size = events[i].nativeQuantityReleased.toNumber() / price;
+        //     // console.log(`Non fill bid case: ${convertNativeIntegerToDecimal(price)} ${utils.convertNativeLotSizeToDecimal(size)}`);
+        //   } else {
+        //     // Overlap between cancel and insert?
+        //     continue;
+        //   }
+        // } else {
+        //   // Ask cancel?
+        //   if (
+        //     events[i].nativeQuantityReleased.toNumber() > 0 &&
+        //     events[i].nativeQuantityPaid.toNumber() === 0
+        //   ) {
+        //     price = events[i].orderId.iushrn(64).toNumber();
+        //     size = events[i].nativeQuantityReleased.toNumber();
+        //     // console.log(`Non fill ask case: ${convertNativeIntegerToDecimal(price)} ${utils.convertNativeLotSizeToDecimal(size)}`);
+        //   } else {
+        //     // Overlap between cancel and insert?
+        //     continue;
+        //   }
+        // }
       }
       let newTradeObject: Trade = {
         seq_num: lastSeqNum - events.length + i + 1,
@@ -124,12 +128,12 @@ const collectEventQueue = (
         market_index: marketIndex,
         strike: strike,
         kind: kind,
-        is_fill: events[i].eventFlags.fill,
         is_maker: events[i].eventFlags.maker,
         is_bid: events[i].eventFlags.bid,
         price: utils.convertNativeIntegerToDecimal(price),
         size: utils.convertNativeLotSizeToDecimal(size),
       };
+      console.log(newTradeObject)
       trades.push(newTradeObject);
     }
     return [trades, lastSeqNum];

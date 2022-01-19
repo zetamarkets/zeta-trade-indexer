@@ -15,7 +15,6 @@ export interface Trade {
   expiry_timestamp: number;
   strike: number;
   kind: Kind;
-  is_fill: boolean;
   is_maker: boolean;
   is_bid: boolean;
   price: number;
