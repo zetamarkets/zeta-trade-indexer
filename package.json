@@ -2,7 +2,7 @@
   "dependencies": {
     "@project-serum/serum": "0.13.55",
     "@solana/web3.js": "^1.18.0",
-    "@zetamarkets/sdk": "^0.9.12",
+    "@zetamarkets/sdk": "^0.10.1",
     "aws-sdk": "^2.1047.0",
     "buffer-layout": "^1.2.2",
     "dotenv": "^10.0.0",

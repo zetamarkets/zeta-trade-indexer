@@ -26,6 +26,27 @@ const main = async () => {
   let lastSeqNum: Record<number, number> = {};
 
   collectMarketData(lastSeqNum);
+
+  const refreshExchange = async () => {
+    await Exchange.close().then(async () => {
+      await Exchange.load(
+        new PublicKey(process.env.PROGRAM_ID),
+        network,
+        connection,
+        utils.defaultCommitment(),
+        undefined,
+        undefined,
+        undefined
+      );
+    }).catch((error) => {
+      console.log("Failed to close Exchange:", error);
+    })
+
+  }
+  setInterval(async () => {
+    console.log("Refreshing Exchange");
+    refreshExchange();
+  }, 21600000); // Refresh every 6 hours
 };
 
 main().catch(console.error.bind(console));
