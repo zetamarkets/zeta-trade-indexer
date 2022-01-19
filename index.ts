@@ -12,6 +12,24 @@ const network =
     ? Network.DEVNET
     : Network.LOCALNET;
 
+
+export const refreshExchange = async () => {
+  await Exchange.close().then(async () => {
+    const newConnection = new Connection(process.env.RPC_URL, "finalized");
+    await Exchange.load(
+      new PublicKey(process.env.PROGRAM_ID),
+      network,
+      newConnection,
+      utils.defaultCommitment(),
+      undefined,
+      undefined,
+      undefined
+    );
+  }).catch((error) => {
+    console.log("Failed to close Exchange:", error);
+  })
+}
+
 const main = async () => {
   await Exchange.load(
     new PublicKey(process.env.PROGRAM_ID),
@@ -27,23 +45,6 @@ const main = async () => {
 
   collectMarketData(lastSeqNum);
 
-  const refreshExchange = async () => {
-    await Exchange.close().then(async () => {
-      const newConnection = new Connection(process.env.RPC_URL, "finalized");
-      await Exchange.load(
-        new PublicKey(process.env.PROGRAM_ID),
-        network,
-        newConnection,
-        utils.defaultCommitment(),
-        undefined,
-        undefined,
-        undefined
-      );
-    }).catch((error) => {
-      console.log("Failed to close Exchange:", error);
-    })
-
-  }
   setInterval(async () => {
     console.log("Refreshing Exchange");
     refreshExchange();
