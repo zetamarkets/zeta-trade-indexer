@@ -133,7 +133,6 @@ const collectEventQueue = (
         price: utils.convertNativeIntegerToDecimal(price),
         size: utils.convertNativeLotSizeToDecimal(size),
       };
-      console.log(newTradeObject)
       trades.push(newTradeObject);
     }
     return [trades, lastSeqNum];
