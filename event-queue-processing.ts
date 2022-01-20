@@ -8,7 +8,6 @@ import {
 import { Trade } from "./utils/types";
 import { putFirehoseBatch } from "./utils/firehose";
 import { decodeRecentEvents } from "./utils";
-import { connection, refreshExchange } from ".";
 import { PublicKey } from "@solana/web3.js";
 import { putDynamo } from "./utils/dynamodb";
 import { FETCH_INTERVAL } from "./utils/constants";
@@ -43,14 +42,7 @@ const collectEventQueue = (
   const fetchTrades = async (
     lastSeqNum?: number
   ): Promise<[Trade[], number]> => {
-    let accountInfo = null;
-      while (accountInfo == null) {
-      try { 
-        accountInfo = await connection.getAccountInfo(eventQueuePk);
-      } catch (e){
-        console.log("Error fetching accountInfo:", e);
-      }
-    }
+    const accountInfo = await Exchange.provider.connection.getAccountInfo(eventQueuePk);
     const { header, events } = decodeRecentEvents(accountInfo.data, lastSeqNum);
     lastSeqNum = header.seqNum;
     let trades: Trade[] = [];
