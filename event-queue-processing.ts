@@ -43,12 +43,13 @@ const collectEventQueue = (
   const fetchTrades = async (
     lastSeqNum?: number
   ): Promise<[Trade[], number]> => {
-    let accountInfo;
-    try {
-      accountInfo = await connection.getAccountInfo(eventQueuePk);
-    } catch (error) {
-      console.log("Error fetching accountInfo:", error);
-      refreshExchange();
+    let accountInfo = null;
+      while (accountInfo == null) {
+      try { 
+        accountInfo = await connection.getAccountInfo(eventQueuePk);
+      } catch (e){
+        console.log("Error fetching accountInfo:", e);
+      }
     }
     const { header, events } = decodeRecentEvents(accountInfo.data, lastSeqNum);
     lastSeqNum = header.seqNum;
