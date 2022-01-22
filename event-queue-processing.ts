@@ -16,39 +16,34 @@ let fetchingMarkets: boolean[];
 fetchingMarkets = new Array(constants.ACTIVE_MARKETS).fill(false);
 
 export async function collectMarketData(lastSeqNum?: Record<number, number>) {
-  const numberOfExpirySeries = Exchange.zetaGroup.expirySeries.length;
-
   let accountInfo = await Exchange.connection.getAccountInfo(
     SYSVAR_CLOCK_PUBKEY
   );
   let clockData = utils.getClockData(accountInfo);
   let timestamp = clockData.timestamp;
 
-  for (var i = 0; i < numberOfExpirySeries; i++) {
-    let expiryIndex = i;
-    let expirySeries = Exchange.markets.expirySeries[expiryIndex];
+  await Promise.all(
+    Exchange.markets.markets.map(async (market) => {
+      let expirySeries = market.expirySeries;
 
-    // Fetch trades if the market is active or
-    // the market expired < 60 seconds ago.
-    // 60 second buffer to handle trades that happened right as expiry occurred.
-    if (
-      expirySeries.activeTs > timestamp ||
-      expirySeries.expiryTs + 60 < timestamp
-    ) {
-      continue;
-    }
+      // Fetch trades if the market is active or
+      // the market expired < 60 seconds ago.
+      // 60 second buffer to handle trades that happened right as expiry occurred.
+      if (
+        expirySeries.activeTs > timestamp ||
+        expirySeries.expiryTs + 60 < timestamp
+      ) {
+        return;
+      }
 
-    let markets = Exchange.markets.getMarketsByExpiryIndex(expiryIndex);
-    for (var j = 0; j < markets.length; j++) {
-      let market = markets[j];
       let marketIndex = market.marketIndex;
       if (!fetchingMarkets[marketIndex]) {
         fetchingMarkets[marketIndex] = true;
-        await collectEventQueue(markets[j], lastSeqNum);
+        await collectEventQueue(market, lastSeqNum);
         fetchingMarkets[marketIndex] = false;
       }
-    }
-  }
+    })
+  );
 }
 
 async function fetchTrades(
@@ -137,7 +132,7 @@ async function collectEventQueue(
     if (trades.length > 0) {
       // putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
       // putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
-      console.log("Put batch", trades)
+      console.log("Put batch", trades);
     }
   } catch (e) {
     console.warn("Unable to fetch event queue: ", e);
