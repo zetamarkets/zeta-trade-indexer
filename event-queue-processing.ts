@@ -11,7 +11,6 @@ import { putFirehoseBatch } from "./utils/firehose";
 import { decodeRecentEvents } from "./utils";
 import { PublicKey } from "@solana/web3.js";
 import { putDynamo } from "./utils/dynamodb";
-import { FETCH_INTERVAL } from "./utils/constants";
 
 let fetchingMarkets: boolean[];
 fetchingMarkets = new Array(constants.ACTIVE_MARKETS).fill(false);
@@ -19,7 +18,7 @@ fetchingMarkets = new Array(constants.ACTIVE_MARKETS).fill(false);
 export async function collectMarketData(lastSeqNum?: Record<number, number>) {
   const numberOfExpirySeries = Exchange.zetaGroup.expirySeries.length;
 
-  let accountInfo = await this._provider.connection.getAccountInfo(
+  let accountInfo = await Exchange.connection.getAccountInfo(
     SYSVAR_CLOCK_PUBKEY
   );
   let clockData = utils.getClockData(accountInfo);
@@ -45,7 +44,7 @@ export async function collectMarketData(lastSeqNum?: Record<number, number>) {
       let marketIndex = market.marketIndex;
       if (!fetchingMarkets[marketIndex]) {
         fetchingMarkets[marketIndex] = true;
-        collectEventQueue(markets[j], lastSeqNum);
+        await collectEventQueue(markets[j], lastSeqNum);
         fetchingMarkets[marketIndex] = false;
       }
     }
@@ -136,8 +135,9 @@ async function collectEventQueue(
     );
     lastSeqNum[market.marketIndex] = currentSeqNum;
     if (trades.length > 0) {
-      putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
-      putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
+      // putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
+      // putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
+      console.log("Put batch", trades)
     }
   } catch (e) {
     console.warn("Unable to fetch event queue: ", e);
