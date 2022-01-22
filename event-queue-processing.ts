@@ -7,9 +7,9 @@ import {
 } from "@zetamarkets/sdk";
 import { SYSVAR_CLOCK_PUBKEY } from "@solana/web3.js";
 import { Trade } from "./utils/types";
-import { putFirehoseBatch } from "./utils/firehose";
 import { decodeRecentEvents } from "./utils";
 import { PublicKey } from "@solana/web3.js";
+import { putFirehoseBatch } from "./utils/firehose";
 import { putDynamo } from "./utils/dynamodb";
 
 let fetchingMarkets: boolean[];
@@ -130,9 +130,8 @@ async function collectEventQueue(
     );
     lastSeqNum[market.marketIndex] = currentSeqNum;
     if (trades.length > 0) {
-      // putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
-      // putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
-      console.log("Put batch", trades);
+      putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
+      putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
     }
   } catch (e) {
     console.warn("Unable to fetch event queue: ", e);
