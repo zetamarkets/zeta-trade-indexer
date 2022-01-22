@@ -2,6 +2,7 @@
 import { Exchange, Network, utils } from "@zetamarkets/sdk";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { collectMarketData } from "./event-queue-processing";
+import { FETCH_INTERVAL } from "./utils/constants";
 
 export const connection = new Connection(process.env.RPC_URL, "finalized");
 
@@ -12,23 +13,19 @@ const network =
     ? Network.DEVNET
     : Network.LOCALNET;
 
-
 export const refreshExchange = async () => {
-  await Exchange.close().then(async () => {
-    const newConnection = new Connection(process.env.RPC_URL, "finalized");
-    await Exchange.load(
-      new PublicKey(process.env.PROGRAM_ID),
-      network,
-      newConnection,
-      utils.defaultCommitment(),
-      undefined,
-      undefined,
-      undefined
-    );
-  }).catch((error) => {
-    console.log("Failed to close Exchange:", error);
-  })
-}
+  const newConnection = new Connection(process.env.RPC_URL, "finalized");
+  await Exchange.load(
+    new PublicKey(process.env.PROGRAM_ID),
+    network,
+    newConnection,
+    utils.defaultCommitment(),
+    undefined,
+    undefined,
+    undefined
+  );
+  await Exchange.close();
+};
 
 const main = async () => {
   await Exchange.load(
@@ -40,15 +37,27 @@ const main = async () => {
     undefined,
     undefined
   );
+  // Close to reduce websocket strain.
+  await Exchange.close();
+
   // Each market has it own sequence number
   let lastSeqNum: Record<number, number> = {};
-
-  collectMarketData(lastSeqNum);
 
   setInterval(async () => {
     console.log("Refreshing Exchange");
     refreshExchange();
-  }, 21600000); // Refresh every 6 hours
+  }, 10_800_000); // Refresh every 3 hours
+
+  setInterval(async () => {
+    collectMarketData(lastSeqNum);
+  }, FETCH_INTERVAL);
+
+  setInterval(async () => {
+    await Exchange.updateExchangeState();
+  }, 60_000);
 };
+
+// 0 active => 0 active => 0 inactive
+// 1 inactive => 1 active => 1 active
 
 main().catch(console.error.bind(console));

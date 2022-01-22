@@ -5,6 +5,7 @@ import {
   programTypes,
   utils,
 } from "@zetamarkets/sdk";
+import { SYSVAR_CLOCK_PUBKEY } from "@solana/web3.js";
 import { Trade } from "./utils/types";
 import { putFirehoseBatch } from "./utils/firehose";
 import { decodeRecentEvents } from "./utils";
@@ -15,144 +16,130 @@ import { FETCH_INTERVAL } from "./utils/constants";
 let fetchingMarkets: boolean[];
 fetchingMarkets = new Array(constants.ACTIVE_MARKETS).fill(false);
 
-export const collectMarketData = (lastSeqNum?: Record<number, number>) => {
+export async function collectMarketData(lastSeqNum?: Record<number, number>) {
   const numberOfExpirySeries = Exchange.zetaGroup.expirySeries.length;
+
+  let accountInfo = await this._provider.connection.getAccountInfo(
+    SYSVAR_CLOCK_PUBKEY
+  );
+  let clockData = utils.getClockData(accountInfo);
+  let timestamp = clockData.timestamp;
+
   for (var i = 0; i < numberOfExpirySeries; i++) {
     let expiryIndex = i;
     let expirySeries = Exchange.markets.expirySeries[expiryIndex];
 
-    // If expirySeries isn't live, do not go through inactive markets
-    if (!expirySeries.isLive()) continue;
+    // Fetch trades if the market is active or
+    // the market expired < 60 seconds ago.
+    // 60 second buffer to handle trades that happened right as expiry occurred.
+    if (
+      expirySeries.activeTs > timestamp ||
+      expirySeries.expiryTs + 60 < timestamp
+    ) {
+      continue;
+    }
 
     let markets = Exchange.markets.getMarketsByExpiryIndex(expiryIndex);
     for (var j = 0; j < markets.length; j++) {
-      collectEventQueue(markets[j], lastSeqNum);
-    }
-  }
-};
-
-const collectEventQueue = (
-  market: Market,
-  lastSeqNum?: Record<number, number>
-) => {
-  const eventQueuePk = market.serumMarket.decoded.eventQueue;
-  const { expiryIndex, expiryTs } = market.expirySeries;
-  const { marketIndex, strike, kind } = market;
-
-  const fetchTrades = async (
-    lastSeqNum?: number
-  ): Promise<[Trade[], number]> => {
-    const accountInfo = await Exchange.provider.connection.getAccountInfo(eventQueuePk);
-    const { header, events } = decodeRecentEvents(accountInfo.data, lastSeqNum);
-    lastSeqNum = header.seqNum;
-    let trades: Trade[] = [];
-
-    for (let i = 0; i < events.length; i++) {
-      const openOrdersMap = await utils.getOpenOrdersMap(
-        new PublicKey(process.env.PROGRAM_ID),
-        events[i].openOrders
-      );
-      const { userKey } = (await Exchange.program.account.openOrdersMap.fetch(
-        openOrdersMap[0]
-      )) as programTypes.OpenOrdersMap;
-      let price, size;
-      // Trade has occured
-      if (events[i].eventFlags.fill) {
-        if (events[i].eventFlags.maker) {
-          if (events[i].eventFlags.bid) {
-            price =
-              events[i].nativeQuantityPaid.toNumber() /
-              events[i].nativeQuantityReleased.toNumber();
-            size = events[i].nativeQuantityReleased.toNumber();
-          } else {
-            price =
-              events[i].nativeQuantityReleased.toNumber() /
-              events[i].nativeQuantityPaid.toNumber();
-            size = events[i].nativeQuantityPaid.toNumber();
-          }
-        } else {
-          if (events[i].eventFlags.bid) {
-            price =
-              events[i].nativeQuantityPaid.toNumber() /
-              events[i].nativeQuantityReleased.toNumber();
-            size = events[i].nativeQuantityReleased.toNumber();
-          } else {
-            price =
-              events[i].nativeQuantityReleased.toNumber() /
-              events[i].nativeQuantityPaid.toNumber();
-            size = events[i].nativeQuantityPaid.toNumber();
-          }
-        }
-        // console.log(`Trade occurred: Market ${marketIndex} ${strike} ${kind} ${utils.convertNativeIntegerToDecimal(price)} ${utils.convertNativeLotSizeToDecimal(size)}`)
-        // Could be cancel or insert here
-      } else {
-        // Only recording fills, so anything else is not recorded
-        continue;
-
-        // // Excess logic to partially deal with cancels + inserts
-        // if (events[i].eventFlags.bid) {
-        //   // Bid cancel?
-        //   if (
-        //     events[i].nativeQuantityReleased.toNumber() > 0 &&
-        //     events[i].nativeQuantityPaid.toNumber() === 0
-        //   ) {
-        //     price = events[i].orderId.iushrn(64).toNumber();
-        //     size = events[i].nativeQuantityReleased.toNumber() / price;
-        //     // console.log(`Non fill bid case: ${convertNativeIntegerToDecimal(price)} ${utils.convertNativeLotSizeToDecimal(size)}`);
-        //   } else {
-        //     // Overlap between cancel and insert?
-        //     continue;
-        //   }
-        // } else {
-        //   // Ask cancel?
-        //   if (
-        //     events[i].nativeQuantityReleased.toNumber() > 0 &&
-        //     events[i].nativeQuantityPaid.toNumber() === 0
-        //   ) {
-        //     price = events[i].orderId.iushrn(64).toNumber();
-        //     size = events[i].nativeQuantityReleased.toNumber();
-        //     // console.log(`Non fill ask case: ${convertNativeIntegerToDecimal(price)} ${utils.convertNativeLotSizeToDecimal(size)}`);
-        //   } else {
-        //     // Overlap between cancel and insert?
-        //     continue;
-        //   }
-        // }
-      }
-      let newTradeObject: Trade = {
-        seq_num: lastSeqNum - events.length + i + 1,
-        timestamp: Math.floor(Date.now() / 1000),
-        owner_pub_key: userKey.toString(),
-        expiry_series_index: expiryIndex,
-        expiry_timestamp: expiryTs,
-        market_index: marketIndex,
-        strike: strike,
-        kind: kind,
-        is_maker: events[i].eventFlags.maker,
-        is_bid: events[i].eventFlags.bid,
-        price: utils.convertNativeIntegerToDecimal(price),
-        size: utils.convertNativeLotSizeToDecimal(size),
-      };
-      trades.push(newTradeObject);
-    }
-    return [trades, lastSeqNum];
-  };
-
-  setInterval(async () => {
-    try {
+      let market = markets[j];
+      let marketIndex = market.marketIndex;
       if (!fetchingMarkets[marketIndex]) {
         fetchingMarkets[marketIndex] = true;
-        const [trades, currentSeqNum] = await fetchTrades(
-          lastSeqNum[marketIndex]
-        );
-        lastSeqNum[marketIndex] = currentSeqNum;
-        if (trades.length > 0) {
-          putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
-          putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
-        }
+        collectEventQueue(markets[j], lastSeqNum);
         fetchingMarkets[marketIndex] = false;
       }
-    } catch (e) {
-      console.warn("Unable to fetch event queue: ", e);
     }
-  }, FETCH_INTERVAL);
-};
+  }
+}
+
+async function fetchTrades(
+  market: Market,
+  lastSeqNum?: number
+): Promise<[Trade[], number]> {
+  const accountInfo = await Exchange.provider.connection.getAccountInfo(
+    market.serumMarket.decoded.eventQueue
+  );
+
+  const { header, events } = decodeRecentEvents(accountInfo.data, lastSeqNum);
+  lastSeqNum = header.seqNum;
+  let trades: Trade[] = [];
+
+  for (let i = 0; i < events.length; i++) {
+    const openOrdersMap = await utils.getOpenOrdersMap(
+      new PublicKey(process.env.PROGRAM_ID),
+      events[i].openOrders
+    );
+    const { userKey } = (await Exchange.program.account.openOrdersMap.fetch(
+      openOrdersMap[0]
+    )) as programTypes.OpenOrdersMap;
+    let price, size;
+    // Trade has occured
+    if (events[i].eventFlags.fill) {
+      if (events[i].eventFlags.maker) {
+        if (events[i].eventFlags.bid) {
+          price =
+            events[i].nativeQuantityPaid.toNumber() /
+            events[i].nativeQuantityReleased.toNumber();
+          size = events[i].nativeQuantityReleased.toNumber();
+        } else {
+          price =
+            events[i].nativeQuantityReleased.toNumber() /
+            events[i].nativeQuantityPaid.toNumber();
+          size = events[i].nativeQuantityPaid.toNumber();
+        }
+      } else {
+        if (events[i].eventFlags.bid) {
+          price =
+            events[i].nativeQuantityPaid.toNumber() /
+            events[i].nativeQuantityReleased.toNumber();
+          size = events[i].nativeQuantityReleased.toNumber();
+        } else {
+          price =
+            events[i].nativeQuantityReleased.toNumber() /
+            events[i].nativeQuantityPaid.toNumber();
+          size = events[i].nativeQuantityPaid.toNumber();
+        }
+      }
+    } else {
+      continue;
+    }
+
+    let expirySeries = market.expirySeries;
+
+    let newTradeObject: Trade = {
+      seq_num: lastSeqNum - events.length + i + 1,
+      timestamp: Math.floor(Date.now() / 1000),
+      owner_pub_key: userKey.toString(),
+      expiry_series_index: expirySeries.expiryIndex,
+      expiry_timestamp: expirySeries.expiryTs,
+      market_index: market.marketIndex,
+      strike: market.strike,
+      kind: market.kind,
+      is_maker: events[i].eventFlags.maker,
+      is_bid: events[i].eventFlags.bid,
+      price: utils.convertNativeIntegerToDecimal(price),
+      size: utils.convertNativeLotSizeToDecimal(size),
+    };
+    trades.push(newTradeObject);
+  }
+  return [trades, lastSeqNum];
+}
+
+async function collectEventQueue(
+  market: Market,
+  lastSeqNum?: Record<number, number>
+) {
+  try {
+    const [trades, currentSeqNum] = await fetchTrades(
+      market,
+      lastSeqNum[market.marketIndex]
+    );
+    lastSeqNum[market.marketIndex] = currentSeqNum;
+    if (trades.length > 0) {
+      putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
+      putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
+    }
+  } catch (e) {
+    console.warn("Unable to fetch event queue: ", e);
+  }
+}
