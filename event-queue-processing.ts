@@ -11,6 +11,7 @@ import { decodeRecentEvents } from "./utils";
 import { PublicKey } from "@solana/web3.js";
 import { putFirehoseBatch } from "./utils/firehose";
 import { putDynamo } from "./utils/dynamodb";
+import { putLastSeqNumMetadata } from "./utils/s3";
 
 let fetchingMarkets: boolean[];
 fetchingMarkets = new Array(constants.ACTIVE_MARKETS).fill(false);
@@ -130,6 +131,7 @@ async function collectEventQueue(
     );
     lastSeqNum[market.marketIndex] = currentSeqNum;
     if (trades.length > 0) {
+      await putLastSeqNumMetadata(process.env.BUCKET_NAME, lastSeqNum);
       putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
       putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
     }

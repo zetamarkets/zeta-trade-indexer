@@ -1,8 +1,8 @@
-// require("dotenv").config();
 import { Exchange, Network, utils } from "@zetamarkets/sdk";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { collectMarketData } from "./event-queue-processing";
 import { FETCH_INTERVAL } from "./utils/constants";
+import { getLastSeqNumMetadata} from "./utils/s3";
 
 export const connection = new Connection(process.env.RPC_URL, "finalized");
 
@@ -41,7 +41,10 @@ const main = async () => {
   await Exchange.close();
 
   // Each market has it own sequence number
-  let lastSeqNum: Record<number, number> = {};
+  let { lastSeqNum } = await getLastSeqNumMetadata(process.env.BUCKET_NAME);
+  if (!lastSeqNum) {
+    lastSeqNum = {};
+  }
 
   setInterval(async () => {
     console.log("Refreshing Exchange");
