@@ -104,7 +104,7 @@ async function fetchTrades(
     let newTradeObject: Trade = {
       seq_num: lastSeqNum - events.length + i + 1,
       order_id: events[i].orderId.toString(),
-      client_order_id: events[i].clientOrderId.toNumber(),
+      client_order_id: events[i].clientOrderId.toString(),
       timestamp: Math.floor(Date.now() / 1000),
       owner_pub_key: userKey.toString(),
       expiry_series_index: expirySeries.expiryIndex,

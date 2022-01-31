@@ -8,7 +8,7 @@ export interface EventQueueHeader {
 
 export interface Trade {
   seq_num: number;
-  client_order_id: number;
+  client_order_id: string;
   order_id: string;
   timestamp: number;
   owner_pub_key: string;
