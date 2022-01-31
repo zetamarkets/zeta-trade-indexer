@@ -18,11 +18,12 @@ export const putDynamo = (data: Trade[], dynamoTableName: string) => {
       PutRequest: {
         Item: {
           seq_num: d.seq_num,
+          order_id: d.order_id,
+          client_order_id: d.client_order_id,
           timestamp: d.timestamp,
           expiry_series_index: d.expiry_series_index,
           expiry_timestamp: d.expiry_timestamp,
           is_bid: d.is_bid,
-          is_fill: d.is_fill,
           is_maker: d.is_maker,
           kind: d.kind,
           market_index: d.market_index,
