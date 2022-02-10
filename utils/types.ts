@@ -12,7 +12,6 @@ export interface Trade {
   order_id: string;
   timestamp: number;
   owner_pub_key: string;
-  expiry_series_index: number;
   market_index: number;
   expiry_timestamp: number;
   strike: number;

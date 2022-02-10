@@ -20,8 +20,8 @@ export const putDynamo = (data: Trade[], dynamoTableName: string) => {
           seq_num: d.seq_num,
           order_id: d.order_id,
           client_order_id: d.client_order_id,
-          timestamp: (new Date(d.timestamp * 1000)).toISOString(),
-          expiry_timestamp: (new Date(d.expiry_timestamp * 1000)).toISOString(),
+          timestamp: convertIsoStringToAthenaFormattedString((new Date(d.timestamp * 1000)).toISOString()),
+          expiry_timestamp: convertIsoStringToAthenaFormattedString((new Date(d.expiry_timestamp * 1000)).toISOString()),
           is_bid: d.is_bid,
           is_maker: d.is_maker,
           kind: d.kind,
@@ -64,3 +64,8 @@ const putDynamoBatch = (dynamoData, dynamoTableName: string) => {
     }
   });
 };
+
+const convertIsoStringToAthenaFormattedString = (isoString: string) => {
+  let splitIsoString = isoString.split("T");
+  return splitIsoString[0] + " " + splitIsoString[1].substring(0, splitIsoString[1].length - 1);
+}
