@@ -12,6 +12,7 @@ import { PublicKey } from "@solana/web3.js";
 import { putFirehoseBatch } from "./utils/firehose";
 import { putDynamo } from "./utils/dynamodb";
 import { putLastSeqNumMetadata } from "./utils/s3";
+import { alert } from "./utils/telegram";
 
 let fetchingMarkets: boolean[];
 fetchingMarkets = new Array(constants.ACTIVE_MARKETS).fill(false);
@@ -137,6 +138,6 @@ async function collectEventQueue(
       putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
     }
   } catch (e) {
-    console.warn("Unable to fetch event queue: ", e);
+    alert(`Failed to fetch event queue: ${e}`, true)
   }
 }
