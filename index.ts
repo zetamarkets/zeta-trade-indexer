@@ -3,6 +3,7 @@ import { PublicKey, Connection } from "@solana/web3.js";
 import { collectMarketData } from "./event-queue-processing";
 import { FETCH_INTERVAL } from "./utils/constants";
 import { getLastSeqNumMetadata} from "./utils/s3";
+import { alert } from "./utils/telegram";
 
 export const connection = new Connection(process.env.RPC_URL, "finalized");
 
@@ -13,8 +14,9 @@ const network =
     ? Network.DEVNET
     : Network.LOCALNET;
 
-export const refreshExchange = async () => {
+export const reloadExchange = async () => {
   const newConnection = new Connection(process.env.RPC_URL, "finalized");
+  alert("Reloading exchange...", false);
   await Exchange.load(
     new PublicKey(process.env.PROGRAM_ID),
     network,
@@ -24,10 +26,12 @@ export const refreshExchange = async () => {
     undefined,
     undefined
   );
+  alert("Reloaded exchange.", false);
   await Exchange.close();
 };
 
 const main = async () => {
+  alert("Loading exchange...", false);
   await Exchange.load(
     new PublicKey(process.env.PROGRAM_ID),
     network,
@@ -37,6 +41,7 @@ const main = async () => {
     undefined,
     undefined
   );
+  alert("Loaded exchange.", false);
   // Close to reduce websocket strain.
   await Exchange.close();
 
@@ -47,8 +52,7 @@ const main = async () => {
   }
 
   setInterval(async () => {
-    console.log("Refreshing Exchange");
-    refreshExchange();
+    reloadExchange();
   }, 10_800_000); // Refresh every 3 hours
 
   setInterval(async () => {
@@ -56,7 +60,11 @@ const main = async () => {
   }, FETCH_INTERVAL);
 
   setInterval(async () => {
-    await Exchange.updateExchangeState();
+    try {
+      await Exchange.updateExchangeState();
+    } catch (e) {
+      alert(`Failed to update exchange state: ${e}`, true)
+    }
   }, 60_000);
 };
 
