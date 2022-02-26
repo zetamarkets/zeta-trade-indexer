@@ -52,22 +52,35 @@ async function fetchTrades(
   market: Market,
   lastSeqNum?: number
 ): Promise<[Trade[], number]> {
-  const accountInfo = await Exchange.provider.connection.getAccountInfo(
-    market.serumMarket.decoded.eventQueue
-  );
+  let accountInfo;
+  try {
+    accountInfo = await Exchange.provider.connection.getAccountInfo(
+      market.serumMarket.decoded.eventQueue
+    );
+  } catch (e) {
+    alert(`Failed to get event queue account info: ${e}`, true);
+    return [[], lastSeqNum];
+  }
 
   const { header, events } = decodeRecentEvents(accountInfo.data, lastSeqNum);
   lastSeqNum = header.seqNum;
   let trades: Trade[] = [];
 
   for (let i = 0; i < events.length; i++) {
-    const openOrdersMap = await utils.getOpenOrdersMap(
-      new PublicKey(process.env.PROGRAM_ID),
-      events[i].openOrders
-    );
-    const { userKey } = (await Exchange.program.account.openOrdersMap.fetch(
-      openOrdersMap[0]
-    )) as programTypes.OpenOrdersMap;
+    let userKey;
+    try {
+      const openOrdersMap = await utils.getOpenOrdersMap(
+        new PublicKey(process.env.PROGRAM_ID),
+        events[i].openOrders
+      );
+      userKey = ((await Exchange.program.account.openOrdersMap.fetch(
+        openOrdersMap[0]
+      )) as programTypes.OpenOrdersMap).userKey;
+    } catch (e) {
+      alert(`Failed to get user key info: ${e}`, true);
+      return [[], lastSeqNum];
+    }
+
     let price, size;
     // Trade has occured
     if (events[i].eventFlags.fill) {
@@ -126,18 +139,14 @@ async function collectEventQueue(
   market: Market,
   lastSeqNum?: Record<number, number>
 ) {
-  try {
-    const [trades, currentSeqNum] = await fetchTrades(
-      market,
-      lastSeqNum[market.marketIndex]
-    );
-    lastSeqNum[market.marketIndex] = currentSeqNum;
-    if (trades.length > 0) {
-      await putLastSeqNumMetadata(process.env.BUCKET_NAME, lastSeqNum);
-      putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
-      putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
-    }
-  } catch (e) {
-    alert(`Failed to fetch event queue: ${e}`, true)
+  const [trades, currentSeqNum] = await fetchTrades(
+    market,
+    lastSeqNum[market.marketIndex]
+  );
+  lastSeqNum[market.marketIndex] = currentSeqNum;
+  if (trades.length > 0) {
+    await putLastSeqNumMetadata(process.env.BUCKET_NAME, lastSeqNum);
+    putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
+    putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
   }
 }
