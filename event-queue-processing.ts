@@ -59,7 +59,7 @@ async function fetchTrades(
     );
   } catch (e) {
     alert(`Failed to get event queue account info: ${e}`, true);
-    // Return empty list for trades, so no data is written onto AWS
+    // Return empty list for trades, so no data is written to AWS
     return [[], lastSeqNum];
   }
 
