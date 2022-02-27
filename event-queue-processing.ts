@@ -59,6 +59,7 @@ async function fetchTrades(
     );
   } catch (e) {
     alert(`Failed to get event queue account info: ${e}`, true);
+    // Return empty list for trades, so nothing gets pushed
     return [[], lastSeqNum];
   }
 
