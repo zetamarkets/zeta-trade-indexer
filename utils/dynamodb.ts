@@ -17,6 +17,7 @@ export const putDynamo = (data: Trade[], dynamoTableName: string) => {
     return {
       PutRequest: {
         Item: {
+          market_seqnum_id: d.market_index + "#" + d.seq_num,
           seq_num: d.seq_num,
           order_id: d.order_id,
           client_order_id: d.client_order_id,
