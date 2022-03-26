@@ -64,7 +64,7 @@ async function fetchTrades(
   }
 
   const { header, events } = decodeRecentEvents(accountInfo.data, lastSeqNum);
-  lastSeqNum = header.seqNum;
+  const newLastSeqNum = header.seqNum;
   let trades: Trade[] = [];
 
   for (let i = 0; i < events.length; i++) {
@@ -133,7 +133,7 @@ async function fetchTrades(
     };
     trades.push(newTradeObject);
   }
-  return [trades, lastSeqNum];
+  return [trades, newLastSeqNum];
 }
 
 async function collectEventQueue(
