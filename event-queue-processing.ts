@@ -65,6 +65,18 @@ async function fetchTrades(
 
   const { header, events } = decodeRecentEvents(accountInfo.data, lastSeqNum);
   const newLastSeqNum = header.seqNum;
+
+  // Since we're polling on finalized commitment, any reversion in event queue sequence number has to be the result of caching.
+  // i.e. If we are directed to a backup RPC server due to an upgrade or other incident.
+  if (lastSeqNum > newLastSeqNum) {
+    alert(
+      `Market index: ${market.marketIndex}, header sequence number (${header.seqNum}) < last sequence number (${lastSeqNum})`,
+      true
+    );
+
+    return [[], lastSeqNum];
+  }
+
   let trades: Trade[] = [];
 
   for (let i = 0; i < events.length; i++) {
@@ -74,9 +86,11 @@ async function fetchTrades(
         new PublicKey(process.env.PROGRAM_ID),
         events[i].openOrders
       );
-      userKey = ((await Exchange.program.account.openOrdersMap.fetch(
-        openOrdersMap[0]
-      )) as programTypes.OpenOrdersMap).userKey;
+      userKey = (
+        (await Exchange.program.account.openOrdersMap.fetch(
+          openOrdersMap[0]
+        )) as programTypes.OpenOrdersMap
+      ).userKey;
     } catch (e) {
       alert(`Failed to get user key info: ${e}`, true);
       return [[], lastSeqNum];
