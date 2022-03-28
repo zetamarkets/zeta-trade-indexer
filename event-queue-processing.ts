@@ -18,9 +18,15 @@ let fetchingMarkets: boolean[];
 fetchingMarkets = new Array(constants.ACTIVE_MARKETS).fill(false);
 
 export async function collectMarketData(lastSeqNum?: Record<number, number>) {
-  let accountInfo = await Exchange.connection.getAccountInfo(
-    SYSVAR_CLOCK_PUBKEY
-  );
+  let accountInfo;
+  try {
+    accountInfo = await Exchange.connection.getAccountInfo(
+      SYSVAR_CLOCK_PUBKEY
+    );
+  } catch (e) {
+    alert(`Failed to get clock account info: ${e}`, true);
+    return;
+  }
   let clockData = utils.getClockData(accountInfo);
   let timestamp = clockData.timestamp;
 
@@ -160,8 +166,9 @@ async function collectEventQueue(
   );
   lastSeqNum[market.marketIndex] = currentSeqNum;
   if (trades.length > 0) {
-    await putLastSeqNumMetadata(process.env.BUCKET_NAME, lastSeqNum);
     putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
     putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
+    // Newest sequence number should only be written after the data has been written
+    await putLastSeqNumMetadata(process.env.BUCKET_NAME, lastSeqNum);
   }
 }
