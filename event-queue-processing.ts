@@ -66,6 +66,8 @@ async function fetchTrades(
   const { header, events } = decodeRecentEvents(accountInfo.data, lastSeqNum);
   const newLastSeqNum = header.seqNum;
 
+  // Since we're polling on finalized commitment, any reversion in event queue sequence number has to be the result of caching.
+  // i.e. If we are directed to a backup RPC server due to an upgrade or other incident.
   if (lastSeqNum > newLastSeqNum) {
     alert(
       `Market index: ${market.marketIndex}, header sequence number (${header.seqNum}) < last sequence number (${lastSeqNum})`,
