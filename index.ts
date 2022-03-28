@@ -2,7 +2,7 @@ import { Exchange, Network, utils } from "@zetamarkets/sdk";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { collectMarketData } from "./event-queue-processing";
 import { FETCH_INTERVAL } from "./utils/constants";
-import { getLastSeqNumMetadata} from "./utils/s3";
+import { getLastSeqNumMetadata } from "./utils/s3";
 import { alert } from "./utils/telegram";
 
 export const connection = new Connection(process.env.RPC_URL, "finalized");
@@ -20,7 +20,7 @@ export const reloadExchange = async () => {
     new PublicKey(process.env.PROGRAM_ID),
     network,
     newConnection,
-    utils.defaultCommitment(),
+    utils.commitmentConfig("finalized"),
     undefined,
     undefined,
     undefined
@@ -34,7 +34,7 @@ const main = async () => {
     new PublicKey(process.env.PROGRAM_ID),
     network,
     connection,
-    utils.defaultCommitment(),
+    utils.commitmentConfig("finalized"),
     undefined,
     undefined,
     undefined
@@ -61,7 +61,7 @@ const main = async () => {
     try {
       await Exchange.updateExchangeState();
     } catch (e) {
-      alert(`Failed to update exchange state: ${e}`, true)
+      alert(`Failed to update exchange state: ${e}`, true);
     }
   }, 60_000);
 };
