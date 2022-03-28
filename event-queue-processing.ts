@@ -168,6 +168,7 @@ async function collectEventQueue(
   if (trades.length > 0) {
     putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
     putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
+    // Newest sequence number should only be written after the data has been written
     await putLastSeqNumMetadata(process.env.BUCKET_NAME, lastSeqNum);
   }
 }
