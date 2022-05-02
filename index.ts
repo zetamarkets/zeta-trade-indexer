@@ -5,8 +5,6 @@ import { FETCH_INTERVAL } from "./utils/constants";
 import { getLastSeqNumMetadata } from "./utils/s3";
 import { alert } from "./utils/telegram";
 
-export const connection = new Connection(process.env.RPC_URL, "finalized");
-
 const network =
   process.env!.NETWORK === "mainnet"
     ? Network.MAINNET
@@ -14,34 +12,31 @@ const network =
     ? Network.DEVNET
     : Network.LOCALNET;
 
-export const reloadExchange = async () => {
-  const newConnection = new Connection(process.env.RPC_URL, "finalized");
-  await Exchange.load(
-    new PublicKey(process.env.PROGRAM_ID),
-    network,
-    newConnection,
-    utils.commitmentConfig("finalized"),
-    undefined,
-    undefined,
-    undefined
-  );
-  await Exchange.close();
+export const loadExchange = async (reload?: boolean) => {
+  try {
+    alert(`${reload ? "Reloading" : "Loading"} exchange...`, false);
+
+    const connection = new Connection(process.env.RPC_URL, "finalized");
+    await Exchange.load(
+      new PublicKey(process.env.PROGRAM_ID),
+      network,
+      connection,
+      utils.commitmentConfig("finalized"),
+      undefined,
+      undefined,
+      undefined
+    );
+    alert(`${reload ? "Reloaded" : "Loaded"} exchange.`, false);
+    // Close to reduce websocket strain
+    await Exchange.close();
+  } catch (e) {
+    alert(`Failed to ${reload ? "reload" : "load"} exchange: ${e}`, true);
+    loadExchange(true);
+  }
 };
 
 const main = async () => {
-  alert("Loading exchange...", false);
-  await Exchange.load(
-    new PublicKey(process.env.PROGRAM_ID),
-    network,
-    connection,
-    utils.commitmentConfig("finalized"),
-    undefined,
-    undefined,
-    undefined
-  );
-  alert("Loaded exchange.", false);
-  // Close to reduce websocket strain.
-  await Exchange.close();
+  await loadExchange();
 
   // Each market has it own sequence number
   let { lastSeqNum } = await getLastSeqNumMetadata(process.env.BUCKET_NAME);
@@ -50,7 +45,7 @@ const main = async () => {
   }
 
   setInterval(async () => {
-    reloadExchange();
+    loadExchange(true);
   }, 10_800_000); // Refresh every 3 hours
 
   setInterval(async () => {
