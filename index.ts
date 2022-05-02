@@ -15,7 +15,6 @@ const network =
 export const loadExchange = async (reload?: boolean) => {
   try {
     alert(`${reload ? "Reloading" : "Loading"} exchange...`, false);
-
     const connection = new Connection(process.env.RPC_URL, "finalized");
     await Exchange.load(
       new PublicKey(process.env.PROGRAM_ID),
