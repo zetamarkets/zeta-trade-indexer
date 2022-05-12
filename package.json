@@ -2,6 +2,7 @@
   "dependencies": {
     "@project-serum/serum": "0.13.55",
     "@solana/web3.js": "^1.36.0",
+    "@zetamarkets/flex-sdk": "^0.5.1",
     "@zetamarkets/sdk": "^0.13.1",
     "aws-sdk": "^2.1047.0",
     "buffer-layout": "^1.2.2",
