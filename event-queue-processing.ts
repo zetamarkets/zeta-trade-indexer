@@ -118,28 +118,36 @@ async function fetchTrades(
           price = events[i].nativeQuantityPaid
             .div(events[i].nativeQuantityReleased)
             .toNumber();
-          size = convertNativeLotSizeToDecimal(
-            events[i].nativeQuantityReleased
+          size = utils.convertNativeBNToDecimal(
+            events[i].nativeQuantityReleased,
+            constants.POSITION_PRECISION
           );
         } else {
           price = events[i].nativeQuantityReleased
             .div(events[i].nativeQuantityPaid)
             .toNumber();
-          size = convertNativeLotSizeToDecimal(events[i].nativeQuantityPaid);
+          size = utils.convertNativeBNToDecimal(
+            events[i].nativeQuantityPaid,
+            constants.POSITION_PRECISION
+          );
         }
       } else {
         if (events[i].eventFlags.bid) {
           price = events[i].nativeQuantityPaid
             .div(events[i].nativeQuantityReleased)
             .toNumber();
-          size = convertNativeLotSizeToDecimal(
-            events[i].nativeQuantityReleased
+          size = utils.convertNativeBNToDecimal(
+            events[i].nativeQuantityReleased,
+            constants.POSITION_PRECISION
           );
         } else {
           price = events[i].nativeQuantityReleased
             .div(events[i].nativeQuantityPaid)
             .toNumber();
-          size = convertNativeLotSizeToDecimal(events[i].nativeQuantityPaid);
+          size = utils.convertNativeBNToDecimal(
+            events[i].nativeQuantityPaid,
+            constants.POSITION_PRECISION
+          );
         }
       }
     } else {
