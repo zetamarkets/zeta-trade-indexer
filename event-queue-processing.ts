@@ -14,6 +14,7 @@ import { putFirehoseBatch } from "./utils/firehose";
 import { putDynamo } from "./utils/dynamodb";
 import { putLastSeqNumMetadata } from "./utils/s3";
 import { alert } from "./utils/telegram";
+import { convertNativeBNToDecimal } from "@zetamarkets/sdk/dist/utils";
 
 let fetchingMarkets: boolean[];
 fetchingMarkets = new Array(constants.ACTIVE_MARKETS).fill(false);
@@ -111,27 +112,27 @@ async function fetchTrades(
     if (events[i].eventFlags.fill) {
       if (events[i].eventFlags.maker) {
         if (events[i].eventFlags.bid) {
-          price =
-            events[i].nativeQuantityPaid.toNumber() /
-            events[i].nativeQuantityReleased.toNumber();
-          size = events[i].nativeQuantityReleased.toNumber();
+          price = events[i].nativeQuantityPaid
+            .div(events[i].nativeQuantityReleased)
+            .toNumber();
+          size = convertNativeBNToDecimal(events[i].nativeQuantityReleased);
         } else {
-          price =
-            events[i].nativeQuantityReleased.toNumber() /
-            events[i].nativeQuantityPaid.toNumber();
-          size = events[i].nativeQuantityPaid.toNumber();
+          price = events[i].nativeQuantityReleased
+            .div(events[i].nativeQuantityPaid)
+            .toNumber();
+          size = convertNativeBNToDecimal(events[i].nativeQuantityPaid);
         }
       } else {
         if (events[i].eventFlags.bid) {
-          price =
-            events[i].nativeQuantityPaid.toNumber() /
-            events[i].nativeQuantityReleased.toNumber();
-          size = events[i].nativeQuantityReleased.toNumber();
+          price = events[i].nativeQuantityPaid
+            .div(events[i].nativeQuantityReleased)
+            .toNumber();
+          size = convertNativeBNToDecimal(events[i].nativeQuantityReleased);
         } else {
-          price =
-            events[i].nativeQuantityReleased.toNumber() /
-            events[i].nativeQuantityPaid.toNumber();
-          size = events[i].nativeQuantityPaid.toNumber();
+          price = events[i].nativeQuantityReleased
+            .div(events[i].nativeQuantityPaid)
+            .toNumber();
+          size = convertNativeBNToDecimal(events[i].nativeQuantityPaid);
         }
       }
     } else {
