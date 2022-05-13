@@ -14,7 +14,10 @@ import { putFirehoseBatch } from "./utils/firehose";
 import { putDynamo } from "./utils/dynamodb";
 import { putLastSeqNumMetadata } from "./utils/s3";
 import { alert } from "./utils/telegram";
-import { convertNativeBNToDecimal } from "@zetamarkets/sdk/dist/utils";
+import {
+  convertNativeBNToDecimal,
+  convertNativeLotSizeToDecimal,
+} from "@zetamarkets/sdk/dist/utils";
 
 let fetchingMarkets: boolean[];
 fetchingMarkets = new Array(constants.ACTIVE_MARKETS).fill(false);
@@ -115,24 +118,28 @@ async function fetchTrades(
           price = events[i].nativeQuantityPaid
             .div(events[i].nativeQuantityReleased)
             .toNumber();
-          size = convertNativeBNToDecimal(events[i].nativeQuantityReleased);
+          size = convertNativeLotSizeToDecimal(
+            events[i].nativeQuantityReleased
+          );
         } else {
           price = events[i].nativeQuantityReleased
             .div(events[i].nativeQuantityPaid)
             .toNumber();
-          size = convertNativeBNToDecimal(events[i].nativeQuantityPaid);
+          size = convertNativeLotSizeToDecimal(events[i].nativeQuantityPaid);
         }
       } else {
         if (events[i].eventFlags.bid) {
           price = events[i].nativeQuantityPaid
             .div(events[i].nativeQuantityReleased)
             .toNumber();
-          size = convertNativeBNToDecimal(events[i].nativeQuantityReleased);
+          size = convertNativeLotSizeToDecimal(
+            events[i].nativeQuantityReleased
+          );
         } else {
           price = events[i].nativeQuantityReleased
             .div(events[i].nativeQuantityPaid)
             .toNumber();
-          size = convertNativeBNToDecimal(events[i].nativeQuantityPaid);
+          size = convertNativeLotSizeToDecimal(events[i].nativeQuantityPaid);
         }
       }
     } else {
@@ -160,7 +167,7 @@ async function fetchTrades(
       is_maker: events[i].eventFlags.maker,
       is_bid: events[i].eventFlags.bid,
       price: utils.convertNativeIntegerToDecimal(price),
-      size: utils.convertNativeLotSizeToDecimal(size),
+      size,
     };
     trades.push(newTradeObject);
   }
