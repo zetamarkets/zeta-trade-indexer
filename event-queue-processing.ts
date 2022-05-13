@@ -14,7 +14,6 @@ import { putFirehoseBatch } from "./utils/firehose";
 import { putDynamo } from "./utils/dynamodb";
 import { putLastSeqNumMetadata } from "./utils/s3";
 import { alert } from "./utils/telegram";
-import { convertNativeBNToDecimal } from "@zetamarkets/sdk/dist/utils";
 
 let fetchingMarkets: boolean[];
 fetchingMarkets = new Array(constants.ACTIVE_MARKETS).fill(false);
@@ -107,32 +106,32 @@ async function fetchTrades(
       alert(`Failed to get user key info: ${e}`, true);
       return [[], lastSeqNum];
     }
-    let price, size;
+    let priceBN, sizeBN;
     // Trade has occured
     if (events[i].eventFlags.fill) {
       if (events[i].eventFlags.maker) {
         if (events[i].eventFlags.bid) {
-          price = events[i].nativeQuantityPaid
-            .div(events[i].nativeQuantityReleased)
-            .toNumber();
-          size = convertNativeBNToDecimal(events[i].nativeQuantityReleased);
+          priceBN = events[i].nativeQuantityPaid.div(
+            events[i].nativeQuantityReleased
+          );
+          sizeBN = events[i].nativeQuantityReleased;
         } else {
-          price = events[i].nativeQuantityReleased
-            .div(events[i].nativeQuantityPaid)
-            .toNumber();
-          size = convertNativeBNToDecimal(events[i].nativeQuantityPaid);
+          priceBN = events[i].nativeQuantityReleased.div(
+            events[i].nativeQuantityPaid
+          );
+          sizeBN = events[i].nativeQuantityPaid;
         }
       } else {
         if (events[i].eventFlags.bid) {
-          price = events[i].nativeQuantityPaid
-            .div(events[i].nativeQuantityReleased)
-            .toNumber();
-          size = convertNativeBNToDecimal(events[i].nativeQuantityReleased);
+          priceBN = events[i].nativeQuantityPaid.div(
+            events[i].nativeQuantityReleased
+          );
+          sizeBN = events[i].nativeQuantityReleased;
         } else {
-          price = events[i].nativeQuantityReleased
-            .div(events[i].nativeQuantityPaid)
-            .toNumber();
-          size = convertNativeBNToDecimal(events[i].nativeQuantityPaid);
+          priceBN = events[i].nativeQuantityReleased.div(
+            events[i].nativeQuantityPaid
+          );
+          sizeBN = events[i].nativeQuantityPaid;
         }
       }
     } else {
@@ -159,8 +158,11 @@ async function fetchTrades(
       kind: market.kind,
       is_maker: events[i].eventFlags.maker,
       is_bid: events[i].eventFlags.bid,
-      price: utils.convertNativeIntegerToDecimal(price),
-      size: utils.convertNativeLotSizeToDecimal(size),
+      price: utils.convertNativeBNToDecimal(priceBN),
+      size: utils.convertNativeBNToDecimal(
+        sizeBN,
+        constants.POSITION_PRECISION
+      ),
     };
     trades.push(newTradeObject);
   }
