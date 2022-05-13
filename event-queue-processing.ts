@@ -165,7 +165,6 @@ async function fetchTrades(
       ),
     };
     trades.push(newTradeObject);
-    console.log(newTradeObject);
   }
   return [trades, newLastSeqNum];
 }
