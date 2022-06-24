@@ -4,7 +4,7 @@
     "@solana/buffer-layout": "^4.0.0",
     "@solana/web3.js": "^1.36.0",
     "@zetamarkets/flex-sdk": "^0.5.1",
-    "@zetamarkets/sdk": "^0.13.1",
+    "@zetamarkets/sdk": "0.15.0-beta.13",
     "aws-sdk": "^2.1047.0",
     "dotenv": "^10.0.0",
     "ts-node": "^7.0.1",

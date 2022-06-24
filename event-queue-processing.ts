@@ -4,6 +4,7 @@ import {
   Market,
   programTypes,
   utils,
+  assets,
 } from "@zetamarkets/sdk";
 import { Network, utils as FlexUtils } from "@zetamarkets/flex-sdk";
 import { SYSVAR_CLOCK_PUBKEY } from "@solana/web3.js";
@@ -25,7 +26,10 @@ const network =
     ? Network.DEVNET
     : Network.LOCALNET;
 
-export async function collectMarketData(lastSeqNum?: Record<number, number>) {
+export async function collectMarketData(
+  asset: assets.Asset,
+  lastSeqNum?: Record<number, Record<number, number>>
+) {
   let accountInfo;
   try {
     accountInfo = await Exchange.connection.getAccountInfo(SYSVAR_CLOCK_PUBKEY);
@@ -37,7 +41,7 @@ export async function collectMarketData(lastSeqNum?: Record<number, number>) {
   let timestamp = clockData.timestamp;
 
   await Promise.all(
-    Exchange.markets.markets.map(async (market) => {
+    Exchange.getMarkets(asset).map(async (market) => {
       let expirySeries = market.expirySeries;
 
       // Fetch trades if the market is active or
@@ -52,7 +56,7 @@ export async function collectMarketData(lastSeqNum?: Record<number, number>) {
       let marketIndex = market.marketIndex;
       if (!fetchingMarkets[marketIndex]) {
         fetchingMarkets[marketIndex] = true;
-        await collectEventQueue(market, lastSeqNum);
+        await collectEventQueue(asset, market, lastSeqNum);
         fetchingMarkets[marketIndex] = false;
       }
     })
@@ -60,6 +64,7 @@ export async function collectMarketData(lastSeqNum?: Record<number, number>) {
 }
 
 async function fetchTrades(
+  asset: assets.Asset,
   market: Market,
   lastSeqNum?: number
 ): Promise<[Trade[], number]> {
@@ -140,10 +145,7 @@ async function fetchTrades(
 
     let expirySeries = market.expirySeries;
 
-    let underlying = FlexUtils.getUnderlyingMapping(
-      network,
-      Exchange.zetaGroup.underlyingMint
-    );
+    let underlying = assets.assetToName(asset);
 
     let newTradeObject: Trade = {
       seq_num: newLastSeqNum - events.length + i + 1,
@@ -170,14 +172,16 @@ async function fetchTrades(
 }
 
 async function collectEventQueue(
+  asset: assets.Asset,
   market: Market,
-  lastSeqNum?: Record<number, number>
+  lastSeqNum?: Record<number, Record<number, number>>
 ) {
   const [trades, currentSeqNum] = await fetchTrades(
+    asset,
     market,
-    lastSeqNum[market.marketIndex]
+    lastSeqNum[asset][market.marketIndex]
   );
-  lastSeqNum[market.marketIndex] = currentSeqNum;
+  lastSeqNum[asset][market.marketIndex] = currentSeqNum;
   if (trades.length > 0) {
     putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
     putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
