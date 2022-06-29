@@ -6,7 +6,6 @@ import {
   utils,
   assets,
 } from "@zetamarkets/sdk";
-import { Network, utils as FlexUtils } from "@zetamarkets/flex-sdk";
 import { SYSVAR_CLOCK_PUBKEY } from "@solana/web3.js";
 import { Trade } from "./utils/types";
 import { decodeRecentEvents } from "./utils";
@@ -18,13 +17,6 @@ import { alert } from "./utils/telegram";
 
 let fetchingMarkets: boolean[];
 fetchingMarkets = new Array(constants.ACTIVE_MARKETS).fill(false);
-
-const network =
-  process.env.NETWORK === "mainnet"
-    ? Network.MAINNET
-    : process.env.NETWORK === "devnet"
-    ? Network.DEVNET
-    : Network.LOCALNET;
 
 export async function collectMarketData(
   asset: assets.Asset,
