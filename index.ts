@@ -40,9 +40,13 @@ export const loadExchange = async (
 };
 
 const main = async () => {
-  let allAssetsStr: string[] = process.env.ASSETS!.split(",");
-  let allAssets = allAssetsStr.map((assetStr) => {
-    return assets.nameToAsset(assetStr.trim());
+  let assetsJson = process.env.ASSETS!;
+  if (assetsJson[0] != "[" && assetsJson[-1] != "]") {
+    assetsJson = "[" + assetsJson + "]";
+  }
+  let assetsStrings: string[] = JSON.parse(assetsJson);
+  let allAssets = assetsStrings.map((assetStr) => {
+    return assets.nameToAsset(assetStr);
   });
   await loadExchange(allAssets);
 
