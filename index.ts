@@ -1,4 +1,4 @@
-import { Exchange, Network, utils } from "@zetamarkets/sdk";
+import { Exchange, Network, utils, assets } from "@zetamarkets/sdk";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { collectMarketData } from "./event-queue-processing";
 import { FETCH_INTERVAL } from "./utils/constants";
@@ -12,11 +12,16 @@ const network =
     ? Network.DEVNET
     : Network.LOCALNET;
 
-export const loadExchange = async (reload?: boolean) => {
+export const loadExchange = async (
+  allAssets: assets.Asset[],
+  reload?: boolean
+) => {
   try {
     alert(`${reload ? "Reloading" : "Loading"} exchange...`, false);
     const connection = new Connection(process.env.RPC_URL, "finalized");
+
     await Exchange.load(
+      allAssets,
       new PublicKey(process.env.PROGRAM_ID),
       network,
       connection,
@@ -30,25 +35,41 @@ export const loadExchange = async (reload?: boolean) => {
     await Exchange.close();
   } catch (e) {
     alert(`Failed to ${reload ? "reload" : "load"} exchange: ${e}`, true);
-    loadExchange(true);
+    loadExchange(allAssets, true);
   }
 };
 
 const main = async () => {
-  await loadExchange();
+  let assetsJson = process.env.ASSETS!;
+  if (assetsJson[0] != "[" && assetsJson[-1] != "]") {
+    assetsJson = "[" + assetsJson + "]";
+  }
+  let assetsStrings: string[] = JSON.parse(assetsJson);
+  let allAssets = assetsStrings.map((assetStr) => {
+    return assets.nameToAsset(assetStr);
+  });
+  await loadExchange(allAssets);
 
-  // Each market has it own sequence number
+  // Each asset/market has it own sequence number
   let { lastSeqNum } = await getLastSeqNumMetadata(process.env.BUCKET_NAME);
   if (!lastSeqNum) {
     lastSeqNum = {};
   }
 
+  for (const asset of allAssets) {
+    if (!(asset in lastSeqNum)) {
+      lastSeqNum[asset] = {};
+    }
+  }
+
   setInterval(async () => {
-    loadExchange(true);
+    loadExchange(allAssets, true);
   }, 10_800_000); // Refresh every 3 hours
 
   setInterval(async () => {
-    collectMarketData(lastSeqNum);
+    allAssets.map((asset) => {
+      collectMarketData(asset, lastSeqNum);
+    });
   }, FETCH_INTERVAL);
 
   setInterval(async () => {

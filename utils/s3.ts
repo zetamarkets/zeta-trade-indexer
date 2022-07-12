@@ -6,7 +6,7 @@ let s3 = new AWS.S3(AWSOptions);
 
 export const putLastSeqNumMetadata = async (
   bucketName: string,
-  lastSeqNum: Record<number, number> | undefined
+  lastSeqNum: Record<number, Record<number, number>> | undefined
 ) => {
   let data = JSON.stringify({ lastSeqNum });
   await s3
@@ -30,7 +30,7 @@ export const getLastSeqNumMetadata = async (bucketName: string) => {
       .promise();
     return JSON.parse(data.Body.toString("utf-8"));
   } catch (error) {
-    alert(`Failed to fetch last seqnum: ${error}`, true)
+    alert(`Failed to fetch last seqnum: ${error}`, true);
     return { lastSeqNum: undefined };
   }
 };
