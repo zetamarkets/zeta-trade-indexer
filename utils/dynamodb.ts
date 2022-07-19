@@ -25,6 +25,7 @@ export const putDynamo = (data: Trade[], dynamoTableName: string) => {
           price: d.price,
           size: d.size,
           strike: d.strike,
+          underlying: d.underlying,
         },
       },
     };
