@@ -39,9 +39,11 @@ export async function collectMarketData(
       // Fetch trades if the market is active or
       // the market expired < 60 seconds ago.
       // 60 second buffer to handle trades that happened right as expiry occurred.
-      if (
+      // If market is a perp market can always fetch trades in the case where its a perp market
+      // expiry series == udefined
+      if (expirySeries != undefined && (
         expirySeries.activeTs > timestamp ||
-        expirySeries.expiryTs + 60 < timestamp
+        expirySeries.expiryTs + 60 < timestamp)
       ) {
         return;
       }
