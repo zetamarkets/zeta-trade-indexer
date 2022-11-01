@@ -41,9 +41,10 @@ export async function collectMarketData(
       // 60 second buffer to handle trades that happened right as expiry occurred.
       // If market is a perp market can always fetch trades in the case where its a perp market
       // expiry series == udefined
-      if (expirySeries != undefined && (
-        expirySeries.activeTs > timestamp ||
-        expirySeries.expiryTs + 60 < timestamp)
+      if (
+        expirySeries != undefined &&
+        (expirySeries.activeTs > timestamp ||
+          expirySeries.expiryTs + 60 < timestamp)
       ) {
         return;
       }
@@ -138,7 +139,7 @@ async function fetchTrades(
     }
 
     let expirySeries = market.expirySeries;
-
+    let expiry_timestamp = expirySeries == null ? 0 : expirySeries.expiryTs;
     let underlying = assets.assetToName(asset);
 
     let newTradeObject: Trade = {
@@ -148,7 +149,7 @@ async function fetchTrades(
       timestamp: Math.floor(Date.now() / 1000),
       underlying: underlying,
       owner_pub_key: userKey.toString(),
-      expiry_timestamp: expirySeries.expiryTs,
+      expiry_timestamp: expiry_timestamp,
       market_index: market.marketIndex,
       strike: market.strike,
       kind: market.kind,
