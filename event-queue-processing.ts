@@ -14,7 +14,9 @@ import { putFirehoseBatch } from "./utils/firehose";
 import { putDynamo } from "./utils/dynamodb";
 import { putLastSeqNumMetadata } from "./utils/s3";
 import { alert } from "./utils/telegram";
-import { fetchingMarkets } from ".";
+
+let fetchingMarkets: boolean[];
+fetchingMarkets = new Array(constants.ACTIVE_MARKETS).fill(false);
 
 export async function collectMarketData(
   asset: assets.Asset,
@@ -47,10 +49,10 @@ export async function collectMarketData(
         return;
       }
       let marketIndex = market.marketIndex;
-      if (!fetchingMarkets.get(asset)[marketIndex]) {
-        fetchingMarkets.get(asset)[marketIndex] = true;
+      if (!fetchingMarkets[marketIndex]) {
+        fetchingMarkets[marketIndex] = true;
         await collectEventQueue(asset, market, lastSeqNum);
-        fetchingMarkets.get(asset)[marketIndex] = false;
+        fetchingMarkets[marketIndex] = false;
       }
     })
   );
