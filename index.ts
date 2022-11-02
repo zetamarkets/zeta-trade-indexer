@@ -1,4 +1,4 @@
-import { Exchange, Network, utils, assets } from "@zetamarkets/sdk";
+import { Exchange, Network, utils, assets, constants } from "@zetamarkets/sdk";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { collectMarketData } from "./event-queue-processing";
 import { FETCH_INTERVAL } from "./utils/constants";
@@ -11,6 +11,8 @@ const network =
     : process.env!.NETWORK === "devnet"
     ? Network.DEVNET
     : Network.LOCALNET;
+
+export let fetchingMarkets = new Map<assets.Asset, boolean[]>();
 
 export const loadExchange = async (
   allAssets: assets.Asset[],
@@ -30,6 +32,14 @@ export const loadExchange = async (
       undefined,
       undefined
     );
+
+    for (var asset of allAssets) {
+      fetchingMarkets.set(
+        asset,
+        new Array(constants.TOTAL_MARKETS).fill(false)
+      );
+    }
+
     alert(`${reload ? "Reloaded" : "Loaded"} exchange.`, false);
     // Close to reduce websocket strain
     await Exchange.close();
