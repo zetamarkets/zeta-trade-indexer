@@ -90,79 +90,84 @@ async function fetchTrades(
 
   let trades: Trade[] = [];
 
-  for (let i = 0; i < events.length; i++) {
-    let userKey;
-    try {
-      const openOrdersMap = await utils.getOpenOrdersMap(
-        new PublicKey(process.env.PROGRAM_ID),
-        events[i].openOrders
-      );
-      userKey = (
-        (await Exchange.program.account.openOrdersMap.fetch(
-          openOrdersMap[0]
-        )) as programTypes.OpenOrdersMap
-      ).userKey;
-    } catch (e) {
-      alert(`Failed to get user key info: ${e}`, true);
-      return [[], lastSeqNum];
-    }
-    let priceBN, sizeBN;
-    // Trade has occured
-    if (events[i].eventFlags.fill) {
-      if (events[i].eventFlags.maker) {
-        if (events[i].eventFlags.bid) {
-          priceBN = events[i].nativeQuantityPaid.div(
-            events[i].nativeQuantityReleased
-          );
-          sizeBN = events[i].nativeQuantityReleased;
+  await Promise.all(
+    events.map(async (event) => {
+      let userKey;
+      try {
+        const openOrdersMap = await utils.getOpenOrdersMap(
+          new PublicKey(process.env.PROGRAM_ID),
+          event.openOrders
+        );
+        userKey = (
+          (await Exchange.program.account.openOrdersMap.fetch(
+            openOrdersMap[0]
+          )) as programTypes.OpenOrdersMap
+        ).userKey;
+      } catch (e) {
+        alert(`Failed to get user key info: ${e}`, true);
+        return [[], lastSeqNum];
+      }
+      let priceBN, sizeBN;
+      // Trade has occured
+      if (event.eventFlags.fill) {
+        if (event.eventFlags.maker) {
+          if (event.eventFlags.bid) {
+            priceBN = event.nativeQuantityPaid.div(
+              event.nativeQuantityReleased
+            );
+            sizeBN = event.nativeQuantityReleased;
+          } else {
+            priceBN = event.nativeQuantityReleased.div(
+              event.nativeQuantityPaid
+            );
+            sizeBN = event.nativeQuantityPaid;
+          }
         } else {
-          priceBN = events[i].nativeQuantityReleased.div(
-            events[i].nativeQuantityPaid
-          );
-          sizeBN = events[i].nativeQuantityPaid;
+          if (event.eventFlags.bid) {
+            priceBN = event.nativeQuantityPaid.div(
+              event.nativeQuantityReleased
+            );
+            sizeBN = event.nativeQuantityReleased;
+          } else {
+            priceBN = event.nativeQuantityReleased.div(
+              event.nativeQuantityPaid
+            );
+            sizeBN = event.nativeQuantityPaid;
+          }
         }
       } else {
-        if (events[i].eventFlags.bid) {
-          priceBN = events[i].nativeQuantityPaid.div(
-            events[i].nativeQuantityReleased
-          );
-          sizeBN = events[i].nativeQuantityReleased;
-        } else {
-          priceBN = events[i].nativeQuantityReleased.div(
-            events[i].nativeQuantityPaid
-          );
-          sizeBN = events[i].nativeQuantityPaid;
-        }
+        return;
       }
-    } else {
-      continue;
-    }
 
-    let expirySeries = market.expirySeries;
-    let expiry_timestamp = expirySeries == null ? 0 : expirySeries.expiryTs;
-    let underlying = assets.assetToName(asset);
+      let expirySeries = market.expirySeries;
+      let expiry_timestamp = expirySeries == null ? 0 : expirySeries.expiryTs;
+      let underlying = assets.assetToName(asset);
 
-    let newTradeObject: Trade = {
-      seq_num: newLastSeqNum - events.length + i + 1,
-      order_id: events[i].orderId.toString(),
-      client_order_id: events[i].clientOrderId.toString(),
-      timestamp: Math.floor(Date.now() / 1000),
-      underlying: underlying,
-      owner_pub_key: userKey.toString(),
-      expiry_timestamp: expiry_timestamp,
-      market_index: market.marketIndex,
-      strike: market.strike,
-      kind: market.kind,
-      is_maker: events[i].eventFlags.maker,
-      is_bid: events[i].eventFlags.bid,
-      price: utils.convertNativeBNToDecimal(priceBN),
-      size: utils.convertNativeBNToDecimal(
-        sizeBN,
-        constants.POSITION_PRECISION
-      ),
-    };
-    trades.push(newTradeObject);
-  }
+      let newTradeObject: Trade = {
+        seq_num: newLastSeqNum - events.length + events.indexOf(event) + 1,
+        order_id: event.orderId.toString(),
+        client_order_id: event.clientOrderId.toString(),
+        timestamp: Math.floor(Date.now() / 1000),
+        underlying: underlying,
+        owner_pub_key: userKey.toString(),
+        expiry_timestamp: expiry_timestamp,
+        market_index: market.marketIndex,
+        strike: market.strike,
+        kind: market.kind,
+        is_maker: event.eventFlags.maker,
+        is_bid: event.eventFlags.bid,
+        price: utils.convertNativeBNToDecimal(priceBN),
+        size: utils.convertNativeBNToDecimal(
+          sizeBN,
+          constants.POSITION_PRECISION
+        ),
+      };
+      trades.push(newTradeObject);
+    })
+  );
+
+  trades.sort((a, b) => a.seq_num - b.seq_num);
+
   return [trades, newLastSeqNum];
 }
 
