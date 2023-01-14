@@ -64,7 +64,7 @@ const main = async () => {
 
   setInterval(async () => {
     loadExchange(allAssets, true);
-  }, 10_800_000); // Refresh every 3 hours
+  }, 600_000); // Refresh connection every 10 minutes
 
   setInterval(async () => {
     allAssets.map((asset) => {
