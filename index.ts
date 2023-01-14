@@ -5,6 +5,8 @@ import { FETCH_INTERVAL } from "./utils/constants";
 import { getLastSeqNumMetadata } from "./utils/s3";
 import { alert } from "./utils/telegram";
 
+let reloading = false;
+
 const network =
   process.env!.NETWORK === "mainnet"
     ? Network.MAINNET
@@ -16,6 +18,7 @@ export const loadExchange = async (
   allAssets: assets.Asset[],
   reload?: boolean
 ) => {
+  reloading = true;
   try {
     alert(`${reload ? "Reloading" : "Loading"} exchange...`, false);
     const connection = new Connection(process.env.RPC_URL, "finalized");
@@ -37,6 +40,7 @@ export const loadExchange = async (
     alert(`Failed to ${reload ? "reload" : "load"} exchange: ${e}`, true);
     loadExchange(allAssets, true);
   }
+  reloading = false;
 };
 
 const main = async () => {
@@ -68,7 +72,9 @@ const main = async () => {
 
   setInterval(async () => {
     allAssets.map((asset) => {
-      collectMarketData(asset, lastSeqNum);
+      if (!reloading) {
+        collectMarketData(asset, lastSeqNum);
+      }
     });
   }, FETCH_INTERVAL);
 
