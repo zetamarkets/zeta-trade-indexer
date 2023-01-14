@@ -22,15 +22,7 @@ export async function collectMarketData(
   asset: assets.Asset,
   lastSeqNum?: Record<number, Record<number, number>>
 ) {
-  let accountInfo;
-  try {
-    accountInfo = await Exchange.connection.getAccountInfo(SYSVAR_CLOCK_PUBKEY);
-  } catch (e) {
-    alert(`Failed to get clock account info: ${e}`, true);
-    return;
-  }
-  let clockData = utils.getClockData(accountInfo);
-  let timestamp = clockData.timestamp;
+  let timestamp = Math.floor(Date.now() / 1000);
 
   await Promise.all(
     Exchange.getMarkets(asset).map(async (market) => {
@@ -42,6 +34,7 @@ export async function collectMarketData(
       // If market is a perp market can always fetch trades in the case where its a perp market
       // expiry series == udefined
       if (
+        market.marketIndex != constants.PERP_INDEX &&
         expirySeries != undefined &&
         (expirySeries.activeTs > timestamp ||
           expirySeries.expiryTs + 60 < timestamp)
