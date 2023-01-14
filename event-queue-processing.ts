@@ -34,6 +34,7 @@ export async function collectMarketData(
       // If market is a perp market can always fetch trades in the case where its a perp market
       // expiry series == udefined
       if (
+        market.marketIndex != constants.PERP_INDEX &&
         expirySeries != undefined &&
         (expirySeries.activeTs > timestamp ||
           expirySeries.expiryTs + 60 < timestamp)
