@@ -1,8 +1,8 @@
 import AWS from "aws-sdk";
 import { AWSOptions } from "./aws-config";
 import { Trade } from "./types";
+import { $log } from "@tsed/logger";
 
-let dynamodb = new AWS.DynamoDB(AWSOptions);
 let docClient = new AWS.DynamoDB.DocumentClient(AWSOptions);
 
 export const putDynamo = (data: Trade[], dynamoTableName: string) => {
@@ -54,9 +54,9 @@ const putDynamoBatch = (dynamoData, dynamoTableName: string) => {
 
   docClient.batchWrite(params, function (err, d) {
     if (err) {
-      console.log("[LOG] DynamoDB BatchWrite Error", JSON.stringify(err));
+      $log.info("DynamoDB BatchWrite Error", JSON.stringify(err));
     } else {
-      console.log("[LOG] DynamoDB BatchWrite Success", JSON.stringify(d));
+      $log.info("DynamoDB BatchWrite Success", JSON.stringify(d));
     }
   });
 };

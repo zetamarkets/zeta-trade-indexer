@@ -12,6 +12,7 @@ import { PublicKey } from "@solana/web3.js";
 import { putFirehoseBatch } from "./utils/firehose";
 import { putDynamo } from "./utils/dynamodb";
 import { putLastSeqNumMetadata } from "./utils/s3";
+import {$log} from "@tsed/logger";
 
 let fetchingMarkets: boolean[];
 fetchingMarkets = new Array(constants.ACTIVE_MARKETS).fill(false);
@@ -60,7 +61,7 @@ async function fetchTrades(
       market.serumMarket.decoded.eventQueue
     );
   } catch (e) {
-    console.error(`[ERROR] Failed to get event queue account info: ${e}`);
+    $log.error(`Failed to get event queue account info: ${e}`);
     // Return empty list for trades, so no data is written to AWS
     return [[], lastSeqNum];
   }
@@ -71,8 +72,8 @@ async function fetchTrades(
   // Since we're polling on finalized commitment, any reversion in event queue sequence number has to be the result of caching.
   // i.e. If we are directed to a backup RPC server due to an upgrade or other incident.
   if (lastSeqNum > newLastSeqNum) {
-    console.warn(
-      `[WARN] Market index: ${market.marketIndex}, header sequence number (${header.seqNum}) < last sequence number (${lastSeqNum})`
+    $log.warn(
+      `Market index: ${market.marketIndex}, header sequence number (${header.seqNum}) < last sequence number (${lastSeqNum})`
     );
 
     return [[], lastSeqNum];
@@ -94,7 +95,7 @@ async function fetchTrades(
           )) as programTypes.OpenOrdersMap
         ).userKey;
       } catch (e) {
-        console.error(`[ERROR] Failed to get user key info: ${e}`);
+        $log.error(`Failed to get user key info: ${e}`);
         return [[], lastSeqNum];
       }
       let priceBN, sizeBN;

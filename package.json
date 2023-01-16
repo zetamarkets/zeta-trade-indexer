@@ -8,6 +8,7 @@
     "dotenv": "^10.0.0",
     "ts-node": "^7.0.1",
     "typescript": "^4.4.3",
+    "@tsed/logger": "^6.3.3",
     "utils": ""
   },
   "scripts": {
