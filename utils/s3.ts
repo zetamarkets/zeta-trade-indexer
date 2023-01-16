@@ -1,6 +1,5 @@
 import AWS from "aws-sdk";
 import { AWSOptions } from "./aws-config";
-import { alert } from "./telegram";
 
 let s3 = new AWS.S3(AWSOptions);
 
@@ -30,7 +29,7 @@ export const getLastSeqNumMetadata = async (bucketName: string) => {
       .promise();
     return JSON.parse(data.Body.toString("utf-8"));
   } catch (error) {
-    alert(`Failed to fetch last seqnum: ${error}`, true);
+    console.error(`Failed to fetch last seqnum: ${error}`);
     return { lastSeqNum: undefined };
   }
 };

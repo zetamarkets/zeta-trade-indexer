@@ -3,7 +3,6 @@ import { PublicKey, Connection } from "@solana/web3.js";
 import { collectMarketData } from "./event-queue-processing";
 import { FETCH_INTERVAL } from "./utils/constants";
 import { getLastSeqNumMetadata } from "./utils/s3";
-import { alert } from "./utils/telegram";
 
 let reloading = false;
 
@@ -20,7 +19,7 @@ export const loadExchange = async (
 ) => {
   reloading = true;
   try {
-    alert(`${reload ? "Reloading" : "Loading"} exchange...`, false);
+    console.info(`${reload ? "Reloading" : "Loading"} exchange...`);
     const connection = new Connection(process.env.RPC_URL, "finalized");
 
     await Exchange.load(
@@ -33,11 +32,11 @@ export const loadExchange = async (
       undefined,
       undefined
     );
-    alert(`${reload ? "Reloaded" : "Loaded"} exchange.`, false);
+    console.info(`${reload ? "Reloaded" : "Loaded"} exchange.`);
     // Close to reduce websocket strain
     await Exchange.close();
   } catch (e) {
-    alert(`Failed to ${reload ? "reload" : "load"} exchange: ${e}`, true);
+    console.error(`Failed to ${reload ? "reload" : "load"} exchange: ${e}`);
     loadExchange(allAssets, true);
   }
   reloading = false;
@@ -82,7 +81,7 @@ const main = async () => {
     try {
       await Exchange.updateExchangeState();
     } catch (e) {
-      alert(`Failed to update exchange state: ${e}`, true);
+      console.error(`Failed to update exchange state: ${e}`);
     }
   }, 60_000);
 };
