@@ -54,9 +54,9 @@ const putDynamoBatch = (dynamoData, dynamoTableName: string) => {
 
   docClient.batchWrite(params, function (err, d) {
     if (err) {
-      console.log("DynamoDB BatchWrite Error", JSON.stringify(err));
+      console.log("[LOG] DynamoDB BatchWrite Error", JSON.stringify(err));
     } else {
-      console.log("DynamoDB BatchWrite Success", JSON.stringify(d));
+      console.log("[LOG] DynamoDB BatchWrite Success", JSON.stringify(d));
     }
   });
 };

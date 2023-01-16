@@ -60,7 +60,7 @@ async function fetchTrades(
       market.serumMarket.decoded.eventQueue
     );
   } catch (e) {
-    console.error(`Failed to get event queue account info: ${e}`);
+    console.error(`[ERROR] Failed to get event queue account info: ${e}`);
     // Return empty list for trades, so no data is written to AWS
     return [[], lastSeqNum];
   }
@@ -72,7 +72,7 @@ async function fetchTrades(
   // i.e. If we are directed to a backup RPC server due to an upgrade or other incident.
   if (lastSeqNum > newLastSeqNum) {
     console.warn(
-      `Market index: ${market.marketIndex}, header sequence number (${header.seqNum}) < last sequence number (${lastSeqNum})`
+      `[WARN] Market index: ${market.marketIndex}, header sequence number (${header.seqNum}) < last sequence number (${lastSeqNum})`
     );
 
     return [[], lastSeqNum];
@@ -94,7 +94,7 @@ async function fetchTrades(
           )) as programTypes.OpenOrdersMap
         ).userKey;
       } catch (e) {
-        console.error(`Failed to get user key info: ${e}`);
+        console.error(`[ERROR] Failed to get user key info: ${e}`);
         return [[], lastSeqNum];
       }
       let priceBN, sizeBN;

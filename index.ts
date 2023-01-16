@@ -19,7 +19,7 @@ export const loadExchange = async (
 ) => {
   reloading = true;
   try {
-    console.info(`${reload ? "Reloading" : "Loading"} exchange...`);
+    console.info(`[INFO] ${reload ? "Reloading" : "Loading"} exchange...`);
     const connection = new Connection(process.env.RPC_URL, "finalized");
 
     await Exchange.load(
@@ -32,11 +32,13 @@ export const loadExchange = async (
       undefined,
       undefined
     );
-    console.info(`${reload ? "Reloaded" : "Loaded"} exchange.`);
+    console.info(`[INFO] ${reload ? "Reloaded" : "Loaded"} exchange.`);
     // Close to reduce websocket strain
     await Exchange.close();
   } catch (e) {
-    console.error(`Failed to ${reload ? "reload" : "load"} exchange: ${e}`);
+    console.error(
+      `[ERROR] Failed to ${reload ? "reload" : "load"} exchange: ${e}`
+    );
     loadExchange(allAssets, true);
   }
   reloading = false;
@@ -81,7 +83,7 @@ const main = async () => {
     try {
       await Exchange.updateExchangeState();
     } catch (e) {
-      console.error(`Failed to update exchange state: ${e}`);
+      console.error(`[ERROR] Failed to update exchange state: ${e}`);
     }
   }, 60_000);
 };
@@ -89,4 +91,4 @@ const main = async () => {
 // 0 active => 0 active => 0 inactive
 // 1 inactive => 1 active => 1 active
 
-main().catch(console.error.bind(console));
+main().catch(console.error.bind(console, "[ERROR] "));
