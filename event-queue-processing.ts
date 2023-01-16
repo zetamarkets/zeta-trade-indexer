@@ -71,7 +71,9 @@ async function fetchTrades(
   // Since we're polling on finalized commitment, any reversion in event queue sequence number has to be the result of caching.
   // i.e. If we are directed to a backup RPC server due to an upgrade or other incident.
   if (lastSeqNum > newLastSeqNum) {
-    console.warn(`Market index: ${market.marketIndex}, header sequence number (${header.seqNum}) < last sequence number (${lastSeqNum})`)
+    console.warn(
+      `Market index: ${market.marketIndex}, header sequence number (${header.seqNum}) < last sequence number (${lastSeqNum})`
+    );
 
     return [[], lastSeqNum];
   }
