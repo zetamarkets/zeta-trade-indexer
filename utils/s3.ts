@@ -17,7 +17,7 @@ export const putLastSeqNumMetadata = async (
       ContentType: "application/json",
     })
     .promise();
-  logger.info("Successfully wrote indices to S3", data);
+  logger.info("Successfully wrote indices to S3", { lastSeqNum });
 };
 
 export const getLastSeqNumMetadata = async (bucketName: string) => {
