@@ -1,5 +1,5 @@
-import { $log } from "@tsed/logger";
 import fetch from "node-fetch";
+import { logger } from "./logging";
 
 function messageTelegram(
   token: string,
@@ -27,7 +27,7 @@ function messageTelegram(
 }
 
 export async function alert(msg: string, error: boolean) {
-  $log.info(`${msg}`);
+  logger.info(`${msg}`);
   messageTelegram(
     process.env.TELEGRAM_TOKEN,
     process.env.TELEGRAM_CHAT_ID,

@@ -1,7 +1,7 @@
 import AWS from "aws-sdk";
 import { AWSOptions } from "./aws-config";
 import { Trade } from "./types";
-import { $log } from "@tsed/logger";
+import { logger } from "./logging";
 
 let docClient = new AWS.DynamoDB.DocumentClient(AWSOptions);
 
@@ -54,9 +54,9 @@ const putDynamoBatch = (dynamoData, dynamoTableName: string) => {
 
   docClient.batchWrite(params, function (err, d) {
     if (err) {
-      $log.info("DynamoDB BatchWrite Error", JSON.stringify(err));
+      logger.info("DynamoDB BatchWrite Error", JSON.stringify(err));
     } else {
-      $log.info("DynamoDB BatchWrite Success", JSON.stringify(d));
+      logger.info("DynamoDB BatchWrite Success", JSON.stringify(d));
     }
   });
 };

@@ -1,7 +1,7 @@
 import AWS from "aws-sdk";
 import { AWSOptions } from "./aws-config";
 import { Pricing, Surface, Trade } from "./types";
-import { $log } from "@tsed/logger";
+import { logger } from "./logging";
 
 let firehose = new AWS.Firehose(AWSOptions);
 
@@ -19,9 +19,9 @@ export const putFirehoseBatch = (
   };
   firehose.putRecordBatch(params, function (err, data) {
     if (err) {
-      $log.info("Firehose putRecordBatch Error", JSON.stringify(err));
+      logger.info("Firehose putRecordBatch Error", JSON.stringify(err));
     } else {
-      $log.info("Firehose putRecordBatch Success", JSON.stringify(data));
+      logger.info("Firehose putRecordBatch Success", JSON.stringify(data));
     }
   });
 };

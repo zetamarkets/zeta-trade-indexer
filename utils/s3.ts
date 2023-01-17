@@ -1,6 +1,6 @@
 import AWS from "aws-sdk";
 import { AWSOptions } from "./aws-config";
-import { $log } from "@tsed/logger";
+import { logger } from "./logging";
 
 let s3 = new AWS.S3(AWSOptions);
 
@@ -17,7 +17,7 @@ export const putLastSeqNumMetadata = async (
       ContentType: "application/json",
     })
     .promise();
-  $log.info("Successfully wrote indices to S3", data);
+  logger.info("Successfully wrote indices to S3", data);
 };
 
 export const getLastSeqNumMetadata = async (bucketName: string) => {
@@ -30,7 +30,7 @@ export const getLastSeqNumMetadata = async (bucketName: string) => {
       .promise();
     return JSON.parse(data.Body.toString("utf-8"));
   } catch (error) {
-    $log.error(`Failed to fetch last seqnum: ${error}`);
+    logger.error(`Failed to fetch last seqnum: ${error}`);
     return { lastSeqNum: undefined };
   }
 };

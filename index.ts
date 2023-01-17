@@ -3,9 +3,7 @@ import { PublicKey, Connection } from "@solana/web3.js";
 import { collectMarketData } from "./event-queue-processing";
 import { FETCH_INTERVAL } from "./utils/constants";
 import { getLastSeqNumMetadata } from "./utils/s3";
-import { $log } from "@tsed/logger";
-
-$log.name = "zeta-trade-indexer"
+import { logger } from "./utils/logging";
 
 let reloading = false;
 
@@ -22,7 +20,7 @@ export const loadExchange = async (
 ) => {
   reloading = true;
   try {
-    $log.info(`${reload ? "Reloading" : "Loading"} exchange...`);
+    logger.info(`${reload ? "Reloading" : "Loading"} exchange...`);
     const connection = new Connection(process.env.RPC_URL, "finalized");
 
     await Exchange.load(
@@ -35,11 +33,11 @@ export const loadExchange = async (
       undefined,
       undefined
     );
-    $log.info(`${reload ? "Reloaded" : "Loaded"} exchange.`);
+    logger.info(`${reload ? "Reloaded" : "Loaded"} exchange.`);
     // Close to reduce websocket strain
     await Exchange.close();
   } catch (e) {
-    $log.error(`Failed to ${reload ? "reload" : "load"} exchange: ${e}`);
+    logger.error(`Failed to ${reload ? "reload" : "load"} exchange: ${e}`);
     loadExchange(allAssets, true);
   }
   reloading = false;
@@ -84,9 +82,9 @@ const main = async () => {
     try {
       await Exchange.updateExchangeState();
     } catch (e) {
-      $log.error(`Failed to update exchange state: ${e}`);
+      logger.error(`Failed to update exchange state: ${e}`);
     }
   }, 60_000);
 };
 
-main().catch(console.error.bind($log));
+main().catch(console.error.bind(logger));
