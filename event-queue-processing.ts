@@ -60,8 +60,8 @@ async function fetchTrades(
     accountInfo = await Exchange.provider.connection.getAccountInfo(
       market.serumMarket.decoded.eventQueue
     );
-  } catch (e) {
-    logger.error(`Failed to get event queue account info: ${e}`);
+  } catch (error) {
+    logger.error("Failed to get event queue account info", { error });
     // Return empty list for trades, so no data is written to AWS
     return [[], lastSeqNum];
   }
@@ -94,8 +94,8 @@ async function fetchTrades(
             openOrdersMap[0]
           )) as programTypes.OpenOrdersMap
         ).userKey;
-      } catch (e) {
-        logger.error(`Failed to get user key info: ${e}`);
+      } catch (error) {
+        logger.error("Failed to get user key info", { error });
         return [[], lastSeqNum];
       }
       let priceBN, sizeBN;

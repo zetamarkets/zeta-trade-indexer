@@ -52,11 +52,11 @@ const putDynamoBatch = (dynamoData, dynamoTableName: string) => {
     RequestItems: requestItems,
   };
 
-  docClient.batchWrite(params, function (err, d) {
+  docClient.batchWrite(params, function (err, data) {
     if (err) {
-      logger.info("DynamoDB BatchWrite Error", err);
+      logger.info("DynamoDB BatchWrite Error", { err });
     } else {
-      logger.info("DynamoDB BatchWrite Success", d);
+      logger.info("DynamoDB BatchWrite Success", { data });
     }
   });
 };

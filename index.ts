@@ -36,8 +36,8 @@ export const loadExchange = async (
     logger.info(`${reload ? "Reloaded" : "Loaded"} exchange.`);
     // Close to reduce websocket strain
     await Exchange.close();
-  } catch (e) {
-    logger.error(`Failed to ${reload ? "reload" : "load"} exchange: ${e}`);
+  } catch (error) {
+    logger.error(`Failed to ${reload ? "reload" : "load"} exchange`, { error });
     loadExchange(allAssets, true);
   }
   reloading = false;
@@ -81,8 +81,8 @@ const main = async () => {
   setInterval(async () => {
     try {
       await Exchange.updateExchangeState();
-    } catch (e) {
-      logger.error(`Failed to update exchange state: ${e}`);
+    } catch (error) {
+      logger.error("Failed to update exchange state", { error });
     }
   }, 60_000);
 };
