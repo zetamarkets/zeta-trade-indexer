@@ -29,8 +29,10 @@ export const getLastSeqNumMetadata = async (bucketName: string) => {
       })
       .promise();
     return JSON.parse(data.Body.toString("utf-8"));
-  } catch (error) {
-    logger.error("Failed to fetch last seqnum", { error });
+  } catch (e) {
+    logger.error("Failed to fetch last seqnum", {
+      error: (e as Error).message,
+    });
     return { lastSeqNum: undefined };
   }
 };

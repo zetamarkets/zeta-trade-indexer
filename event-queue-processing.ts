@@ -14,13 +14,12 @@ import { putDynamo } from "./utils/dynamodb";
 import { putLastSeqNumMetadata } from "./utils/s3";
 import { logger } from "./utils/logging";
 
-let fetchingMarkets: boolean[];
-fetchingMarkets = new Array(constants.ACTIVE_MARKETS).fill(false);
-
 export async function collectMarketData(
   asset: assets.Asset,
-  lastSeqNum?: Record<number, Record<number, number>>
+  lastSeqNum?: Record<number, Record<number, number>>,
+  fetchingState?: Map<assets.Asset, Array<boolean>>
 ) {
+  // logger.info("Collecting market data", { asset });
   let timestamp = Math.floor(Date.now() / 1000);
 
   await Promise.all(
@@ -41,13 +40,46 @@ export async function collectMarketData(
         return;
       }
       let marketIndex = market.marketIndex;
-      if (!fetchingMarkets[marketIndex]) {
-        fetchingMarkets[marketIndex] = true;
+      if (!fetchingState || !fetchingState.get(asset)[marketIndex]) {
+        fetchingState.get(asset)[marketIndex] = true;
         await collectEventQueue(asset, market, lastSeqNum);
-        fetchingMarkets[marketIndex] = false;
+        fetchingState.get(asset)[marketIndex] = false;
+      } else {
+        // logger.info("Market already in fetching state", { asset });
       }
     })
   );
+}
+
+async function collectEventQueue(
+  asset: assets.Asset,
+  market: Market,
+  lastSeqNum?: Record<number, Record<number, number>>
+) {
+  // logger.info("Collecting event queue", {
+  //   asset,
+  //   marketIndex: market.marketIndex,
+  // });
+  const [trades, currentSeqNum] = await fetchTrades(
+    asset,
+    market,
+    lastSeqNum[asset][market.marketIndex]
+  );
+  let lastSeqNumCache = lastSeqNum[asset][market.marketIndex];
+  lastSeqNum[asset][market.marketIndex] = currentSeqNum;
+  if (trades.length > 0) {
+    logger.info(`${trades.length} trades indexed`, {
+      asset,
+      marketIndex: market.marketIndex,
+      lastSeqNum: lastSeqNumCache,
+      currentSeqNum,
+      tradeData: trades,
+    });
+    putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
+    putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
+    // Newest sequence number should only be written after the data has been written
+    await putLastSeqNumMetadata(process.env.BUCKET_NAME, lastSeqNum);
+  }
 }
 
 async function fetchTrades(
@@ -55,13 +87,17 @@ async function fetchTrades(
   market: Market,
   lastSeqNum?: number
 ): Promise<[Trade[], number]> {
+  // logger.info("Fetching trades", { asset, marketIndex: market.marketIndex });
   let accountInfo;
   try {
     accountInfo = await Exchange.provider.connection.getAccountInfo(
       market.serumMarket.decoded.eventQueue
     );
-  } catch (error) {
-    logger.error("Failed to get event queue account info", { error });
+  } catch (e) {
+    logger.error("Failed to get event queue account info", {
+      asset,
+      error: (e as Error).message,
+    });
     // Return empty list for trades, so no data is written to AWS
     return [[], lastSeqNum];
   }
@@ -73,7 +109,8 @@ async function fetchTrades(
   // i.e. If we are directed to a backup RPC server due to an upgrade or other incident.
   if (lastSeqNum > newLastSeqNum) {
     logger.warn(
-      `Market index: ${market.marketIndex}, header sequence number (${header.seqNum}) < last sequence number (${lastSeqNum})`
+      `Market index: ${market.marketIndex}, header sequence number (${header.seqNum}) < last sequence number (${lastSeqNum})`,
+      { asset }
     );
 
     return [[], lastSeqNum];
@@ -94,8 +131,11 @@ async function fetchTrades(
             openOrdersMap[0]
           )) as programTypes.OpenOrdersMap
         ).userKey;
-      } catch (error) {
-        logger.error("Failed to get user key info", { error });
+      } catch (e) {
+        logger.error("Failed to get user key info", {
+          asset,
+          error: (e as Error).message,
+        });
         return [[], lastSeqNum];
       }
       let priceBN, sizeBN;
@@ -160,23 +200,4 @@ async function fetchTrades(
   trades.sort((a, b) => a.seq_num - b.seq_num);
 
   return [trades, newLastSeqNum];
-}
-
-async function collectEventQueue(
-  asset: assets.Asset,
-  market: Market,
-  lastSeqNum?: Record<number, Record<number, number>>
-) {
-  const [trades, currentSeqNum] = await fetchTrades(
-    asset,
-    market,
-    lastSeqNum[asset][market.marketIndex]
-  );
-  lastSeqNum[asset][market.marketIndex] = currentSeqNum;
-  if (trades.length > 0) {
-    putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
-    putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
-    // Newest sequence number should only be written after the data has been written
-    await putLastSeqNumMetadata(process.env.BUCKET_NAME, lastSeqNum);
-  }
 }
