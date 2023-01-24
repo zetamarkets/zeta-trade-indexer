@@ -1,46 +1,54 @@
-import { Exchange, Network, utils, assets } from "@zetamarkets/sdk";
+import { Exchange, Network, utils, assets, constants } from "@zetamarkets/sdk";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { collectMarketData } from "./event-queue-processing";
 import { FETCH_INTERVAL } from "./utils/constants";
 import { getLastSeqNumMetadata } from "./utils/s3";
 import { logger } from "./utils/logging";
 
-let reloading = false;
+let reloadingState = false;
+let fetchingState: Map<assets.Asset, Array<boolean>>;
 
-const network =
+const NETWORK =
   process.env!.NETWORK === "mainnet"
     ? Network.MAINNET
     : process.env!.NETWORK === "devnet"
     ? Network.DEVNET
     : Network.LOCALNET;
+const COMMITMENT = "finalized";
 
 export const loadExchange = async (
   allAssets: assets.Asset[],
   reload?: boolean
 ) => {
-  reloading = true;
+  reloadingState = true;
   try {
-    logger.info(`${reload ? "Reloading" : "Loading"} exchange...`);
-    const connection = new Connection(process.env.RPC_URL, "finalized");
+    logger.info(`${reload ? "Reloading" : "Loading"} exchange...`, {
+      asset: allAssets,
+    });
+    const connection = new Connection(process.env.RPC_URL, COMMITMENT);
 
     await Exchange.load(
       allAssets,
       new PublicKey(process.env.PROGRAM_ID),
-      network,
+      NETWORK,
       connection,
-      utils.commitmentConfig("finalized"),
+      utils.commitmentConfig(COMMITMENT),
       undefined,
       undefined,
       undefined
     );
-    logger.info(`${reload ? "Reloaded" : "Loaded"} exchange.`);
+    logger.info(`${reload ? "Reloaded" : "Loaded"} exchange.`, {
+      asset: allAssets,
+    });
     // Close to reduce websocket strain
     await Exchange.close();
-  } catch (error) {
-    logger.error(`Failed to ${reload ? "reload" : "load"} exchange`, { error });
+  } catch (e) {
+    logger.error(`Failed to ${reload ? "reload" : "load"} exchange`, {
+      error: (e as Error).message,
+    });
     loadExchange(allAssets, true);
   }
-  reloading = false;
+  reloadingState = false;
 };
 
 const main = async () => {
@@ -54,8 +62,16 @@ const main = async () => {
   });
   await loadExchange(allAssets);
 
+  // Set the fetching state to false initially
+  fetchingState = new Map(
+    allAssets.map((asset) => {
+      return [asset, new Array(constants.ACTIVE_MARKETS).fill(false)];
+    })
+  );
+
   // Each asset/market has it own sequence number
   let { lastSeqNum } = await getLastSeqNumMetadata(process.env.BUCKET_NAME);
+  logger.info("Loaded checkpoint", { lastSeqNum });
   if (!lastSeqNum) {
     lastSeqNum = {};
   }
@@ -71,9 +87,9 @@ const main = async () => {
   }, 10_800_000); // Refresh connection every 3hr
 
   setInterval(async () => {
-    allAssets.map((asset) => {
-      if (!reloading) {
-        collectMarketData(asset, lastSeqNum);
+    allAssets.map(async (asset) => {
+      if (!reloadingState) {
+        await collectMarketData(asset, lastSeqNum, fetchingState);
       }
     });
   }, FETCH_INTERVAL);
@@ -81,8 +97,10 @@ const main = async () => {
   setInterval(async () => {
     try {
       await Exchange.updateExchangeState();
-    } catch (error) {
-      logger.error("Failed to update exchange state", { error });
+    } catch (e) {
+      logger.error("Failed to update exchange state", {
+        error: (e as Error).message,
+      });
     }
   }, 60_000);
 };
