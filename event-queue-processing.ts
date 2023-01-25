@@ -94,7 +94,7 @@ async function fetchTrades(
       market.serumMarket.decoded.eventQueue
     );
   } catch (e) {
-    logger.error("Failed to get event queue account info", {
+    logger.warn("Failed to get event queue account info", {
       asset,
       error: (e as Error).message,
     });
@@ -132,7 +132,7 @@ async function fetchTrades(
           )) as programTypes.OpenOrdersMap
         ).userKey;
       } catch (e) {
-        logger.error("Failed to get user key info", {
+        logger.warn("Failed to get user key info", {
           asset,
           error: (e as Error).message,
         });
