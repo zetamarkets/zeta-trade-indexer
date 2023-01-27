@@ -1,12 +1,12 @@
 import { Exchange, Network, utils, assets, constants } from "@zetamarkets/sdk";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { collectMarketData } from "./event-queue-processing";
-import { FETCH_INTERVAL } from "./utils/constants";
 import { getLastSeqNumMetadata } from "./utils/s3";
 import { logger } from "./utils/logging";
 
 let reloadingState = false;
 let fetchingState: Map<assets.Asset, Array<boolean>>;
+const FETCH_INTERVAL = Number(process.env.FETCH_INTERVAL) | 1000;
 
 const NETWORK =
   process.env!.NETWORK === "mainnet"
@@ -25,7 +25,10 @@ export const loadExchange = async (
     logger.info(`${reload ? "Reloading" : "Loading"} exchange...`, {
       asset: allAssets,
     });
-    const connection = new Connection(process.env.RPC_URL, COMMITMENT);
+    const connection = new Connection(process.env.RPC_URL, {
+      commitment: COMMITMENT,
+      wsEndpoint: process.env.RPC_WS_URL,
+    });
 
     await Exchange.load(
       allAssets,
@@ -71,7 +74,7 @@ const main = async () => {
 
   // Each asset/market has it own sequence number
   let { lastSeqNum } = await getLastSeqNumMetadata(process.env.BUCKET_NAME);
-  logger.info("Loaded checkpoint", { lastSeqNum });
+  // logger.info("Loaded checkpoint", { lastSeqNum });
   if (!lastSeqNum) {
     lastSeqNum = {};
   }
@@ -87,9 +90,9 @@ const main = async () => {
   }, 10_800_000); // Refresh connection every 3hr
 
   setInterval(async () => {
-    allAssets.map(async (asset) => {
+    allAssets.map((asset) => {
       if (!reloadingState) {
-        await collectMarketData(asset, lastSeqNum, fetchingState);
+        collectMarketData(asset, lastSeqNum, fetchingState);
       }
     });
   }, FETCH_INTERVAL);

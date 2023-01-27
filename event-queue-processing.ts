@@ -30,7 +30,7 @@ export async function collectMarketData(
       // the market expired < 60 seconds ago.
       // 60 second buffer to handle trades that happened right as expiry occurred.
       // If market is a perp market can always fetch trades in the case where its a perp market
-      // expiry series == udefined
+      // expiry series == undefined
       if (
         market.marketIndex != constants.PERP_INDEX &&
         expirySeries != undefined &&
@@ -39,6 +39,14 @@ export async function collectMarketData(
       ) {
         return;
       }
+      // Ignore options markets if PERPS_ONLY=true
+      if (
+        market.marketIndex != constants.PERP_INDEX &&
+        process.env.PERPS_ONLY
+      ) {
+        return;
+      }
+      // Fetch and process the event queue if not already fetching
       let marketIndex = market.marketIndex;
       if (!fetchingState || !fetchingState.get(asset)[marketIndex]) {
         fetchingState.get(asset)[marketIndex] = true;
@@ -75,10 +83,16 @@ async function collectEventQueue(
       currentSeqNum,
       tradeData: trades,
     });
-    putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
-    putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
-    // Newest sequence number should only be written after the data has been written
-    await putLastSeqNumMetadata(process.env.BUCKET_NAME, lastSeqNum);
+    if (!process.env.DEBUG) {
+      putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
+      putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
+      // Newest sequence number should only be written after the data has been written
+      await putLastSeqNumMetadata(process.env.BUCKET_NAME, lastSeqNum);
+    } else {
+      logger.warn(
+        "Debug mode enabled, results and checkpoints will not be written out"
+      );
+    }
   }
 }
 
