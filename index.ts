@@ -16,6 +16,9 @@ const NETWORK =
     : Network.LOCALNET;
 const COMMITMENT = "finalized";
 
+console.log(`DEBUG: ${process.env.DEBUG == "true"}`);
+console.log(`PERPS ONLY: ${process.env.PERPS_ONLY == "true"}`);
+
 export const loadExchange = async (
   allAssets: assets.Asset[],
   reload?: boolean

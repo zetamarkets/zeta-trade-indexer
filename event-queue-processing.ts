@@ -14,6 +14,9 @@ import { putDynamo } from "./utils/dynamodb";
 import { putLastSeqNumMetadata } from "./utils/s3";
 import { logger } from "./utils/logging";
 
+const DEBUG = process.env.DEBUG == "true";
+const PERPS_ONLY = process.env.PERPS_ONLY == "true";
+
 export async function collectMarketData(
   asset: assets.Asset,
   lastSeqNum?: Record<number, Record<number, number>>,
@@ -40,10 +43,7 @@ export async function collectMarketData(
         return;
       }
       // Ignore options markets if PERPS_ONLY=true
-      if (
-        market.marketIndex != constants.PERP_INDEX &&
-        Boolean(process.env.PERPS_ONLY)
-      ) {
+      if (market.marketIndex != constants.PERP_INDEX && PERPS_ONLY) {
         return;
       }
       // Fetch and process the event queue if not already fetching
@@ -83,7 +83,8 @@ async function collectEventQueue(
       currentSeqNum,
       tradeData: trades,
     });
-    if (!Boolean(process.env.DEBUG)) {
+
+    if (!DEBUG) {
       putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
       putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
       // Newest sequence number should only be written after the data has been written
