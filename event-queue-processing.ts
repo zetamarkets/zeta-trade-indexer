@@ -42,7 +42,7 @@ export async function collectMarketData(
       // Ignore options markets if PERPS_ONLY=true
       if (
         market.marketIndex != constants.PERP_INDEX &&
-        process.env.PERPS_ONLY
+        Boolean(process.env.PERPS_ONLY)
       ) {
         return;
       }
@@ -83,7 +83,7 @@ async function collectEventQueue(
       currentSeqNum,
       tradeData: trades,
     });
-    if (!process.env.DEBUG) {
+    if (!Boolean(process.env.DEBUG)) {
       putDynamo(trades, process.env.DYNAMO_TABLE_NAME);
       putFirehoseBatch(trades, process.env.FIREHOSE_DS_NAME);
       // Newest sequence number should only be written after the data has been written
