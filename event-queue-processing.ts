@@ -138,7 +138,7 @@ async function fetchTrades(
       let userKey;
       try {
         const openOrdersMap = await utils.getOpenOrdersMap(
-          new PublicKey(process.env.PROGRAM_ID),
+          new PublicKey(Exchange.programId),
           event.openOrders
         );
         userKey = (

@@ -1,4 +1,11 @@
-import { Exchange, Network, utils, assets, constants } from "@zetamarkets/sdk";
+import {
+  Exchange,
+  Network,
+  utils,
+  assets,
+  constants,
+  types,
+} from "@zetamarkets/sdk";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { collectMarketData } from "./event-queue-processing";
 import { getLastSeqNumMetadata } from "./utils/s3";
@@ -33,16 +40,15 @@ export const loadExchange = async (
       wsEndpoint: process.env.RPC_WS_URL,
     });
 
-    await Exchange.load(
-      allAssets,
-      new PublicKey(process.env.PROGRAM_ID),
-      NETWORK,
-      connection,
-      utils.commitmentConfig(COMMITMENT),
-      undefined,
-      undefined,
-      undefined
-    );
+    const LOAD_CONFIG: types.LoadExchangeConfig = {
+      assets: allAssets,
+      network: NETWORK,
+      connection: connection,
+      opts: utils.commitmentConfig(COMMITMENT),
+      throttleMs: 0,
+      loadFromStore: true,
+    };
+    await Exchange.load(LOAD_CONFIG);
     logger.info(`${reload ? "Reloaded" : "Loaded"} exchange.`, {
       asset: allAssets,
     });
