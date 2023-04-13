@@ -45,7 +45,11 @@ export function decodeRecentEvents(buffer: Buffer, lastSeenSeqNum?: number) {
     const allocLen = Math.floor(
       (buffer.length - EVENT_QUEUE_HEADER.span) / EVENT.span
     );
-    for (let i = 0; i < header.count; i++) {
+    const newEventsCount = Math.min(
+      header.seqNum - lastSeenSeqNum,
+      allocLen - 1
+    );
+    for (let i = newEventsCount; i > 0; --i) {
       const nodeIndex = (header.head + i) % allocLen;
       const decodedItem = EVENT.decode(
         buffer,
