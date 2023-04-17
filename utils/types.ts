@@ -1,4 +1,6 @@
+import { PublicKey } from "@solana/web3.js";
 import { Kind } from "@zetamarkets/sdk/dist/types";
+import { BN } from "@zetamarkets/anchor";
 
 export interface EventQueueHeader {
   head: number;
@@ -6,43 +8,40 @@ export interface EventQueueHeader {
   seqNum: number;
 }
 
+export interface EventQueueLayout {
+  eventFlags: {
+    fill: boolean;
+    out: boolean;
+    bid: boolean;
+    maker: boolean;
+  };
+  openOrdersSlot: number;
+  feeTier: number;
+  nativeQuantityReleased: BN;
+  nativeQuantityPaid: BN;
+  nativeFeeOrRebate: BN;
+  orderId: BN;
+  openOrders: PublicKey;
+  clientOrderId: BN;
+}
+
 export interface Trade {
   seq_num: number;
-  client_order_id: string;
-  order_id: string;
   timestamp: number;
-  owner_pub_key: string;
-  underlying: string;
-  market_index: number;
-  expiry_timestamp: number;
-  strike: number;
-  kind: Kind;
+  authority: string;
+  asset: string;
   is_maker: boolean;
   is_bid: boolean;
   price: number;
   size: number;
+  client_order_id: string;
+  order_id: string;
 }
 
 export interface Pricing {
   timestamp: number;
   slot?: number;
-  expiry_series_index: number;
-  expiry_timestamp: number;
   market_index: number;
-  strike: number;
   kind: Kind;
   theo: number;
-  delta: number;
-  sigma: number;
-  vega: number;
-}
-
-export interface Surface {
-  timestamp: number;
-  slot?: number;
-  expiry_series_index: number;
-  expiry_timestamp: number;
-  vol_surface: number[];
-  nodes: number[];
-  interest_rate: number;
 }

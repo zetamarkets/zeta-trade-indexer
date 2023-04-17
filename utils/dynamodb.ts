@@ -1,9 +1,11 @@
-import AWS from "aws-sdk";
 import { AWSOptions } from "./aws-config";
 import { Trade } from "./types";
 import { logger } from "./logging";
-
-let docClient = new AWS.DynamoDB.DocumentClient(AWSOptions);
+import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import {
+  BatchWriteCommand,
+  BatchWriteCommandInput,
+} from "@aws-sdk/lib-dynamodb";
 
 export const putDynamo = (data: Trade[], dynamoTableName: string) => {
   if (!data.length) return;
@@ -45,18 +47,86 @@ export const putDynamo = (data: Trade[], dynamoTableName: string) => {
   }
 };
 
-const putDynamoBatch = (dynamoData, dynamoTableName: string) => {
-  let requestItems = {};
-  requestItems[dynamoTableName] = dynamoData;
+const MAX_DYNAMO_BATCH_SIZE = 25;
+
+const client = new DynamoDBClient(AWSOptions);
+
+export async function batchWriteDynamo(params: BatchWriteCommandInput) {
+  const maxBatchSize = 25;
+  const requestItemsKeys = Object.keys(
+    params.RequestItems
+  ) as (keyof typeof params.RequestItems)[];
+
+  for (const key of requestItemsKeys) {
+    const items = params.RequestItems[key];
+
+    // Split the items array into chunks of maxBatchSize
+    const chunks = [];
+    for (let i = 0; i < items.length; i += maxBatchSize) {
+      chunks.push(items.slice(i, i + maxBatchSize));
+    }
+
+    // Send each chunk as a separate batch write request
+    for (const chunk of chunks) {
+      const chunkParams: BatchWriteCommandInput = {
+        RequestItems: {
+          [key]: chunk,
+        },
+      };
+
+      return _batchWriteDynamo(chunkParams);
+    }
+  }
+}
+
+const _batchWriteDynamo = async (params: BatchWriteCommandInput) => {
+  try {
+    const response = await client.send(new BatchWriteCommand(params));
+    console.log("Batch write successful:", response);
+    return response;
+  } catch (error) {
+    console.error("Error in batch write:", error);
+  }
+};
+
+export const writeCheckpoint = async (
+  table: string,
+  lastSeqNum: Record<number, number> | undefined
+) => {
+  let data = JSON.stringify({ lastSeqNum });
+  // await s3
+  //   .putObject({
+  //     Bucket: bucketName,
+  //     Key: `trades/checkpoint.json`,
+  //     Body: data,
+  //     ContentType: "application/json",
+  //   })
+  //   .promise();
+  // logger.info("Successfully wrote indices to S3", { lastSeqNum });
+
   const params = {
-    RequestItems: requestItems,
+    TableName: table,
+    Item: {
+      SEQ_NUM: { N: "001" },
+    },
   };
 
-  docClient.batchWrite(params, function (err, data) {
-    if (err) {
-      logger.info("DynamoDB BatchWrite Error", { err });
-    } else {
-      logger.info("DynamoDB BatchWrite Success", { data });
-    }
-  });
+  const response = await client.send(new PutItemCommand(params));
+};
+
+export const readCheckpoint = async (table: string) => {
+  try {
+    const data = await s3
+      .getObject({
+        Bucket: bucketName,
+        Key: `trades/checkpoint.json`,
+      })
+      .promise();
+    return JSON.parse(data.Body.toString("utf-8"));
+  } catch (e) {
+    logger.error("Failed to fetch last seqnum", {
+      error: (e as Error).message,
+    });
+    return { lastSeqNum: undefined };
+  }
 };

@@ -6,9 +6,8 @@ import {
   constants,
   types,
 } from "@zetamarkets/sdk";
-import { PublicKey, Connection } from "@solana/web3.js";
-import { collectMarketData } from "./event-queue-processing";
-import { getLastSeqNumMetadata } from "./utils/s3";
+import { Connection } from "@solana/web3.js";
+import { collectEventQueue, collectMarketData } from "./event-queue-processing";
 import { logger } from "./utils/logging";
 
 let reloadingState = false;
@@ -21,10 +20,9 @@ const NETWORK =
     : process.env!.NETWORK === "devnet"
     ? Network.DEVNET
     : Network.LOCALNET;
-const COMMITMENT = "finalized";
+const COMMITMENT = "confirmed";
 
 console.log(`DEBUG: ${process.env.DEBUG == "true"}`);
-console.log(`PERPS ONLY: ${process.env.PERPS_ONLY == "true"}`);
 
 export const loadExchange = async (
   allAssets: assets.Asset[],
@@ -64,19 +62,11 @@ export const loadExchange = async (
 };
 
 const main = async () => {
-  let assetsJson = process.env.ASSETS!;
-  if (assetsJson[0] != "[" && assetsJson[-1] != "]") {
-    assetsJson = "[" + assetsJson + "]";
-  }
-  let assetsStrings: string[] = JSON.parse(assetsJson);
-  let allAssets = assetsStrings.map((assetStr) => {
-    return assets.nameToAsset(assetStr);
-  });
-  await loadExchange(allAssets);
+  await loadExchange(assets.allAssets());
 
   // Set the fetching state to false initially
   fetchingState = new Map(
-    allAssets.map((asset) => {
+    assets.allAssets().map((asset) => {
       return [asset, new Array(constants.ACTIVE_MARKETS).fill(false)];
     })
   );
@@ -88,24 +78,37 @@ const main = async () => {
     lastSeqNum = {};
   }
 
-  for (const asset of allAssets) {
-    if (!(asset in lastSeqNum)) {
-      lastSeqNum[asset] = {};
+  // for (const asset of assets.allAssets()) {
+  //   if (!(asset in lastSeqNum)) {
+  //     lastSeqNum[asset] = {};
+  //   }
+  // }
+
+  // Refresh connection every 3hr
+  setInterval(async () => {
+    loadExchange(assets.allAssets(), true);
+  }, 10_800_000);
+
+  // Fetch trade data from the event queue
+  setInterval(async () => {
+    if (!reloadingState) {
+      const marketPromises = assets.allAssets().map(async (asset) => {
+        // let market = Exchange.getPerpMarket(asset);
+
+        // Fetch and process the event queue if not already fetching
+        if (!fetchingState || !fetchingState.get(asset)) {
+          fetchingState[asset] = true;
+          await collectEventQueue(asset, lastSeqNum);
+          fetchingState[asset] = false;
+        } else {
+          // logger.info("Market already in fetching state", { asset });
+        }
+      });
+      Promise.all(marketPromises);
     }
-  }
-
-  setInterval(async () => {
-    loadExchange(allAssets, true);
-  }, 10_800_000); // Refresh connection every 3hr
-
-  setInterval(async () => {
-    allAssets.map((asset) => {
-      if (!reloadingState) {
-        collectMarketData(asset, lastSeqNum, fetchingState);
-      }
-    });
   }, FETCH_INTERVAL);
 
+  // Update exchange state every 60s
   setInterval(async () => {
     try {
       await Exchange.updateExchangeState();
